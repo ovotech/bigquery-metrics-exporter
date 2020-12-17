@@ -9,11 +9,15 @@ import (
 	"time"
 )
 
+// DefaultMetricPrefix is the prefix that metric names have by default
 var DefaultMetricPrefix = "custom.gcp.bigquery.table"
+
+// DefaultMetricInterval is the default period between table-level metric exports
 var DefaultMetricInterval = "30s"
 
+// Config contains application configuration details
 type Config struct {
-	DatadogApiKey  string
+	DatadogAPIKey  string
 	GcpProject     string
 	MetricPrefix   string
 	MetricTags     []string
@@ -29,20 +33,20 @@ func NewConfig(name string) (*Config, error) {
 	cl := argsFromCommandLine(name)
 	envs := argsFromEnv()
 
-	cnf.DatadogApiKey = envs.datadogApiKey
-	if cnf.DatadogApiKey == "" {
-		ddApiKeyFile := coalesce(cl.datadogApiKeyFile, envs.datadogApiKeyFile)
-		if ddApiKeyFile != "" {
-			content, err := ioutil.ReadFile(ddApiKeyFile)
+	cnf.DatadogAPIKey = envs.datadogAPIKey
+	if cnf.DatadogAPIKey == "" {
+		ddAPIKeyFile := coalesce(cl.datadogAPIKeyFile, envs.datadogAPIKeyFile)
+		if ddAPIKeyFile != "" {
+			content, err := ioutil.ReadFile(ddAPIKeyFile)
 			if err != nil {
 				return nil, fmt.Errorf("error reading datadog API key file: %w", err)
 			}
 
-			cnf.DatadogApiKey = string(content)
+			cnf.DatadogAPIKey = string(content)
 		}
 	}
 
-	cnf.GcpProject = coalesce(cl.projectId, envs.projectId)
+	cnf.GcpProject = coalesce(cl.projectID, envs.projectID)
 	cnf.MetricPrefix = coalesce(cl.metricPrefix, envs.metricPrefix, DefaultMetricPrefix)
 	cnf.MetricTags = parseTagString(coalesce(cl.metricTags, envs.metricTags))
 
@@ -70,8 +74,8 @@ func GetEnv(env, def string) string {
 
 // ValidateConfig will validate that all of the required config parameters are present
 func ValidateConfig(c *Config) error {
-	if c.DatadogApiKey == "" {
-		return ErrMissingDatadogApiKey
+	if c.DatadogAPIKey == "" {
+		return ErrMissingDatadogAPIKey
 	}
 
 	if c.GcpProject == "" {
@@ -90,7 +94,7 @@ func ValidateConfig(c *Config) error {
 }
 
 type arguments struct {
-	datadogApiKey, datadogApiKeyFile, projectId, metricPrefix, metricInterval, metricTags string
+	datadogAPIKey, datadogAPIKeyFile, projectID, metricPrefix, metricInterval, metricTags string
 }
 
 func argsFromEnv() arguments {
@@ -101,9 +105,9 @@ func argsFromEnv() arguments {
 		}
 	}
 
-	do(&args.datadogApiKey, "DATADOG_API_KEY")
-	do(&args.datadogApiKeyFile, "DATADOG_API_KEY_FILE")
-	do(&args.projectId, "GCP_PROJECT_ID")
+	do(&args.datadogAPIKey, "DATADOG_API_KEY")
+	do(&args.datadogAPIKeyFile, "DATADOG_API_KEY_FILE")
+	do(&args.projectID, "GCP_PROJECT_ID")
 	do(&args.metricPrefix, "METRIC_PREFIX")
 	do(&args.metricTags, "METRIC_TAGS")
 	do(&args.metricInterval, "METRIC_INTERVAL")
@@ -114,8 +118,8 @@ func argsFromEnv() arguments {
 func argsFromCommandLine(name string) arguments {
 	args := arguments{}
 	flags := flag.NewFlagSet(name, flag.ExitOnError)
-	flags.StringVar(&args.datadogApiKeyFile, "datadog-api-key-file", "", "File containing the Datadog API key")
-	flags.StringVar(&args.projectId, "gcp-project-id", "", "The GCP project to extract BigQuery metrics from")
+	flags.StringVar(&args.datadogAPIKeyFile, "datadog-api-key-file", "", "File containing the Datadog API key")
+	flags.StringVar(&args.projectID, "gcp-project-id", "", "The GCP project to extract BigQuery metrics from")
 	flags.StringVar(&args.metricPrefix, "metric-prefix", "", fmt.Sprintf("The prefix for the metrics names exported to Datadog (Default %s)", DefaultMetricPrefix))
 	flags.StringVar(&args.metricInterval, "metric-interval", "", fmt.Sprintf("The interval between metrics submissions (Default %s", DefaultMetricInterval))
 	flags.StringVar(&args.metricTags, "metric-tags", "", "Comma-delimited list of tags to attach to metrics")
@@ -125,8 +129,8 @@ func argsFromCommandLine(name string) arguments {
 	return args
 }
 
-func coalesce(vals ...string) string {
-	for _, val := range vals {
+func coalesce(s ...string) string {
+	for _, val := range s {
 		if val != "" {
 			return val
 		}

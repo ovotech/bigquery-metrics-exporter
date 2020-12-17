@@ -11,28 +11,32 @@ import (
 	"time"
 )
 
-type generator interface {
+// Generator defines something that is able to output *metrics.Metric into a channel
+type Generator interface {
 	ProduceMetrics(context.Context, chan *metrics.Metric)
 }
 
-type publisher interface {
+// Publisher defines something that is able to publish a slice of metrics.Metric
+type Publisher interface {
 	PublishMetricsSet(context.Context, []metrics.Metric) error
 }
 
-type runner struct {
+// Runner co-ordinates metric generation and metric publishing
+type Runner struct {
 	cfg       *config.Config
 	consumer  *metrics.Consumer
-	generator generator
-	publisher publisher
+	generator Generator
+	publisher Publisher
 }
 
-func NewRunner(ctx context.Context, cfg *config.Config) (*runner, error) {
+// NewRunner returns a Runner instance configured appropriately
+func NewRunner(ctx context.Context, cfg *config.Config) (*Runner, error) {
 	generator, err := sources.NewGenerator(ctx, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("error creating metrics generator: %w", err)
+		return nil, fmt.Errorf("error creating metrics Generator: %w", err)
 	}
 
-	return &runner{
+	return &Runner{
 		cfg:       cfg,
 		consumer:  metrics.NewConsumer(),
 		generator: generator,
@@ -42,8 +46,8 @@ func NewRunner(ctx context.Context, cfg *config.Config) (*runner, error) {
 
 // RunOnce runs a single round of metrics collection and submits them
 // to DataDog immediately
-func (d *runner) RunOnce(ctx context.Context) error {
-	log.Info().Msg("Starting runner")
+func (d *Runner) RunOnce(ctx context.Context) error {
+	log.Info().Msg("Starting Runner")
 
 	receiver := d.consumer.Run()
 	defer close(receiver)
@@ -51,7 +55,7 @@ func (d *runner) RunOnce(ctx context.Context) error {
 	d.generator.ProduceMetrics(ctx, receiver)
 	err := d.consumer.PublishTo(ctx, d.publisher)
 
-	log.Err(err).Msg("Finishing runner")
+	log.Err(err).Msg("Finishing Runner")
 
 	return err
 }
@@ -59,8 +63,8 @@ func (d *runner) RunOnce(ctx context.Context) error {
 // RunUntil runs the metrics collection process in one goroutine and
 // the submission process in another goroutine, and runs them until the
 // context is cancelled
-func (d *runner) RunUntil(ctx context.Context) error {
-	log.Info().Msg("Starting runner")
+func (d *Runner) RunUntil(ctx context.Context) error {
+	log.Info().Msg("Starting Runner")
 
 	receiver := d.consumer.Run()
 	defer close(receiver)
@@ -76,7 +80,7 @@ func (d *runner) RunUntil(ctx context.Context) error {
 
 	go func() {
 		logger := log.With().
-			Str("component", "generator").
+			Str("component", "Generator").
 			Str("metric_interval", d.cfg.MetricInterval.String()).
 			Str("metric_prefix", d.cfg.MetricPrefix).
 			Logger()
@@ -101,7 +105,7 @@ func (d *runner) RunUntil(ctx context.Context) error {
 	}()
 	go func() {
 		logger := log.With().
-			Str("component", "publisher").
+			Str("component", "Publisher").
 			Str("metric_interval", d.cfg.MetricInterval.String()).
 			Str("metric_prefix", d.cfg.MetricPrefix).
 			Logger()
@@ -144,11 +148,11 @@ func (d *runner) RunUntil(ctx context.Context) error {
 
 	select {
 	case err := <-problem:
-		log.Err(err).Msg("Finishing runner")
+		log.Err(err).Msg("Finishing Runner")
 
 		return err
 	default:
-		log.Info().Msg("Finishing runner")
+		log.Info().Msg("Finishing Runner")
 
 		return nil
 	}

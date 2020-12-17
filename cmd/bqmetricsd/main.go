@@ -10,13 +10,13 @@ import (
 	"os/signal"
 )
 
-const CmdName = "bqmetricsd"
+const cmdName = "bqmetricsd"
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	handleSignals(cancel)
 
-	cfg, err := config.NewConfig(CmdName)
+	cfg, err := config.NewConfig(cmdName)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to parse config")
 	}
@@ -34,7 +34,7 @@ func main() {
 
 func init() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	log.Logger = log.With().Str("application", CmdName).Logger()
+	log.Logger = log.With().Str("application", cmdName).Logger()
 	ll := config.GetEnv("LOG_LEVEL", "info")
 	level, err := zerolog.ParseLevel(ll)
 	if err != nil {

@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// Generator can generate metrics from BigQuery tables
 type Generator struct {
 	cfg      *config.Config
 	client   *bigquery.Client
@@ -32,14 +33,15 @@ func NewGenerator(ctx context.Context, cfg *config.Config) (*Generator, error) {
 	}, nil
 }
 
-func (g Generator) ProduceMetrics(ctx context.Context, rcvr chan *metrics.Metric) {
+// ProduceMetrics will generate table level metrics for all BigQuery tables
+func (g Generator) ProduceMetrics(ctx context.Context, receiver chan *metrics.Metric) {
 	log.Debug().Msg("Producing table level metrics")
 
 	wg := sync.WaitGroup{}
 	for ds := range iterateDatasets(ctx, g.client) {
 		for tbl := range iterateTables(ctx, ds) {
 			wg.Add(1)
-			go g.outputTableLevelMetrics(ctx, tbl, rcvr, &wg)
+			go g.outputTableLevelMetrics(ctx, tbl, receiver, &wg)
 		}
 	}
 	wg.Wait()

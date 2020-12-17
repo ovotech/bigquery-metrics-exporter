@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// Metric represents a metric to submit and a list of readings of that metric
 type Metric struct {
 	Interval uint64      `json:"interval"`
 	Metric   string      `json:"metric"`
@@ -19,9 +20,11 @@ type Metric struct {
 	Type     string      `json:"type"`
 }
 
+// TypeGauge is a "gauge" type metric
 const TypeGauge = "gauge"
 
-func (m *Metric) Id() string {
+// ID returns an identifier for the metric
+func (m *Metric) ID() string {
 	sb := strings.Builder{}
 	sb.WriteString(m.Metric)
 	for _, tag := range m.Tags {
@@ -31,6 +34,7 @@ func (m *Metric) Id() string {
 	return sb.String()
 }
 
+// Reading is a point in time reading of some metric
 type Reading struct {
 	Timestamp time.Time
 	Value     float64
@@ -75,6 +79,7 @@ func (m *Metric) mergePoints(o *Metric) {
 	}
 }
 
+// Producer can create new metrics
 type Producer struct {
 	config *config.Config
 }
@@ -84,7 +89,7 @@ func NewProducer(c *config.Config) Producer {
 	return Producer{config: c}
 }
 
-// Produce adds a reading to a metric, creating the metric if necessary
+// Produce creates a metric from a given Reading, based on current configuration
 func (p *Producer) Produce(metric string, read Reading, tags []string) *Metric {
 	tags = append(tags, p.config.MetricTags...)
 	sort.Strings(tags)
@@ -125,11 +130,14 @@ func createPointmap(m *Metric) pointmap {
 	return pm
 }
 
+// Consumer consumes metrics, storing them in an internal map and maintaining
+// a consistent view of currently unpublished metrics
 type Consumer struct {
 	mx      sync.Mutex
 	metrics map[string]*Metric
 }
 
+// NewConsumer is a factory for creating a Consumer
 func NewConsumer() *Consumer {
 	var metrics map[string]*Metric
 	metrics = make(map[string]*Metric)
@@ -141,13 +149,13 @@ func NewConsumer() *Consumer {
 func (c *Consumer) Run() chan *Metric {
 	log.Debug().Msg("Starting metric consumer")
 
-	metricRcvr := make(chan *Metric)
+	receiver := make(chan *Metric)
 	go func() {
-		for metric := range metricRcvr {
+		for metric := range receiver {
 			c.consume(metric)
 		}
 	}()
-	return metricRcvr
+	return receiver
 }
 
 // Flush will return all currently consumed metrics and empty the metric buffer
@@ -165,6 +173,8 @@ type publisher interface {
 }
 
 // PublishTo will publish the metrics collected so far to the provided publisher
+// If a recoverable error is encountered, the metric buffer is not flushed so that
+// the metrics can be resent during the next publishing attempt
 func (c *Consumer) PublishTo(ctx context.Context, pub publisher) error {
 	c.mx.Lock()
 	defer c.mx.Unlock()
@@ -204,9 +214,9 @@ func (c *Consumer) consume(m *Metric) {
 	c.mx.Lock()
 	defer c.mx.Unlock()
 
-	if _, ok := c.metrics[m.Id()]; ok {
-		c.metrics[m.Id()].mergePoints(m)
+	if _, ok := c.metrics[m.ID()]; ok {
+		c.metrics[m.ID()].mergePoints(m)
 	} else {
-		c.metrics[m.Id()] = m
+		c.metrics[m.ID()] = m
 	}
 }

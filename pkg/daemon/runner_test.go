@@ -44,7 +44,7 @@ type mockRecoverableErrorPublisher struct {
 }
 
 func (m *mockRecoverableErrorPublisher) PublishMetricsSet(_ context.Context, _ []metrics.Metric) error {
-	m.call += 1
+	m.call++
 	if m.call < len(m.errs) {
 		return m.errs[m.call]
 	}
@@ -55,8 +55,8 @@ func Test_runner_RunOnce(t *testing.T) {
 	type fields struct {
 		cfg       *config.Config
 		consumer  *metrics.Consumer
-		generator generator
-		publisher publisher
+		generator Generator
+		publisher Publisher
 	}
 	type args struct {
 		ctx context.Context
@@ -103,7 +103,7 @@ func Test_runner_RunOnce(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := &runner{
+			d := &Runner{
 				cfg:       tt.fields.cfg,
 				consumer:  tt.fields.consumer,
 				generator: tt.fields.generator,
@@ -123,8 +123,8 @@ func Test_runner_RunUntil(t *testing.T) {
 	type fields struct {
 		cfg       *config.Config
 		consumer  *metrics.Consumer
-		generator generator
-		publisher publisher
+		generator Generator
+		publisher Publisher
 	}
 	type args struct {
 		ctx context.Context
@@ -171,7 +171,7 @@ func Test_runner_RunUntil(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := &runner{
+			d := &Runner{
 				cfg:       tt.fields.cfg,
 				consumer:  tt.fields.consumer,
 				generator: tt.fields.generator,

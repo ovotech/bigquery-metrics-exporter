@@ -4,41 +4,42 @@ import (
 	"fmt"
 )
 
-type SubmissionErrorType int
+type submissionErrorType int
 
 const (
-	UnrecoverableError SubmissionErrorType = iota
-	RecoverableError
+	unrecoverableError submissionErrorType = iota
+	recoverableError
 )
 
+// SubmissionError is returned when an error is encountered publishing metrics
 type SubmissionError struct {
-	Err  error
-	Type SubmissionErrorType
+	err     error
+	errType submissionErrorType
 }
 
 // NewUnrecoverableError returns an error that is deemed unrecoverable and the
 // request should be aborted
 func NewUnrecoverableError(err error) SubmissionError {
-	return SubmissionError{Err: err, Type: UnrecoverableError}
+	return SubmissionError{err: err, errType: unrecoverableError}
 }
 
 // NewRecoverableError returns an error that is deemed recoverable and the
 // request may be retried
 func NewRecoverableError(err error) SubmissionError {
-	return SubmissionError{Err: err, Type: RecoverableError}
+	return SubmissionError{err: err, errType: recoverableError}
 }
 
 // Error returns the error string for the SubmissionError
 func (s SubmissionError) Error() string {
 	switch {
-	case s.Type == RecoverableError && s.Err == nil:
+	case s.errType == recoverableError && s.err == nil:
 		return "a recoverable error occurred"
-	case s.Type == RecoverableError:
-		return fmt.Sprintf("a recoverable error occurred: %s", s.Err)
-	case s.Type == UnrecoverableError && s.Err == nil:
+	case s.errType == recoverableError:
+		return fmt.Sprintf("a recoverable error occurred: %s", s.err)
+	case s.errType == unrecoverableError && s.err == nil:
 		return "an unrecoverable error occurred"
-	case s.Type == UnrecoverableError:
-		return fmt.Sprintf("an unrecoverable error occurred: %s", s.Err)
+	case s.errType == unrecoverableError:
+		return fmt.Sprintf("an unrecoverable error occurred: %s", s.err)
 	default:
 		return "an error occurred"
 	}
@@ -46,7 +47,7 @@ func (s SubmissionError) Error() string {
 
 // Unwrap returns the underlying error
 func (s SubmissionError) Unwrap() error {
-	return s.Err
+	return s.err
 }
 
 type wrapped interface {
@@ -56,7 +57,7 @@ type wrapped interface {
 // IsRecoverable returns whether the error is deemed recoverable and may be retried
 func IsRecoverable(err error) bool {
 	if s, ok := err.(SubmissionError); ok {
-		return s.Type == RecoverableError
+		return s.errType == recoverableError
 	}
 
 	if e, ok := err.(wrapped); ok {
@@ -70,7 +71,7 @@ func IsRecoverable(err error) bool {
 // should be aborted
 func IsUnrecoverable(err error) bool {
 	if s, ok := err.(SubmissionError); ok {
-		return s.Type == UnrecoverableError
+		return s.errType == unrecoverableError
 	}
 
 	if e, ok := err.(wrapped); ok {

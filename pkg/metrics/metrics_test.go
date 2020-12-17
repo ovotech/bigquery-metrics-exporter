@@ -46,8 +46,8 @@ func TestMetric_Id(t *testing.T) {
 				Metric: tt.fields.Metric,
 				Tags:   tt.fields.Tags,
 			}
-			if got := m.Id(); got != tt.want {
-				t.Errorf("Id() = %v, want %v", got, tt.want)
+			if got := m.ID(); got != tt.want {
+				t.Errorf("ID() = %v, want %v", got, tt.want)
 			}
 		})
 	}
