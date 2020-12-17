@@ -1,12 +1,16 @@
 package config
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
+
+	sm "cloud.google.com/go/secretmanager/apiv1"
+	smpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 )
 
 // DefaultMetricPrefix is the prefix that metric names have by default
@@ -33,16 +37,25 @@ func NewConfig(name string) (*Config, error) {
 	cl := argsFromCommandLine(name)
 	envs := argsFromEnv()
 
+	var err error
+
 	cnf.DatadogAPIKey = envs.datadogAPIKey
 	if cnf.DatadogAPIKey == "" {
 		ddAPIKeyFile := coalesce(cl.datadogAPIKeyFile, envs.datadogAPIKeyFile)
 		if ddAPIKeyFile != "" {
-			content, err := ioutil.ReadFile(ddAPIKeyFile)
+			cnf.DatadogAPIKey, err = getValueFromFile(ddAPIKeyFile)
 			if err != nil {
 				return nil, fmt.Errorf("error reading datadog API key file: %w", err)
 			}
-
-			cnf.DatadogAPIKey = string(content)
+		}
+	}
+	if cnf.DatadogAPIKey == "" {
+		ddAPIKeySecretID := coalesce(cl.datadogAPIKeySecretID, envs.datadogAPIKeySecretID)
+		if ddAPIKeySecretID != "" {
+			cnf.DatadogAPIKey, err = getValueFromSecretManager(ddAPIKeySecretID)
+			if err != nil {
+				return nil, fmt.Errorf("error reading datadog secret: %w", err)
+			}
 		}
 	}
 
@@ -50,7 +63,6 @@ func NewConfig(name string) (*Config, error) {
 	cnf.MetricPrefix = coalesce(cl.metricPrefix, envs.metricPrefix, DefaultMetricPrefix)
 	cnf.MetricTags = parseTagString(coalesce(cl.metricTags, envs.metricTags))
 
-	var err error
 	cnf.MetricInterval, err = time.ParseDuration(coalesce(cl.metricInterval, envs.metricInterval, DefaultMetricInterval))
 	if err != nil {
 		return nil, fmt.Errorf("error parsing metric interval: %w", err)
@@ -93,8 +105,35 @@ func ValidateConfig(c *Config) error {
 	return nil
 }
 
+func getValueFromFile(path string) (string, error) {
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+
+	return string(content), nil
+}
+
+func getValueFromSecretManager(id string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	client, err := sm.NewClient(ctx)
+	if err != nil {
+		return "", fmt.Errorf("error creating Google Secret Manager client: %w", err)
+	}
+
+	req := &smpb.AccessSecretVersionRequest{Name: id}
+	resp, err := client.AccessSecretVersion(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("error accessing secret version: %w", err)
+	}
+
+	return string(resp.Payload.GetData()), nil
+}
+
 type arguments struct {
-	datadogAPIKey, datadogAPIKeyFile, projectID, metricPrefix, metricInterval, metricTags string
+	datadogAPIKey, datadogAPIKeyFile, datadogAPIKeySecretID, projectID, metricPrefix, metricInterval, metricTags string
 }
 
 func argsFromEnv() arguments {
@@ -107,6 +146,7 @@ func argsFromEnv() arguments {
 
 	do(&args.datadogAPIKey, "DATADOG_API_KEY")
 	do(&args.datadogAPIKeyFile, "DATADOG_API_KEY_FILE")
+	do(&args.datadogAPIKeySecretID, "DATADOG_API_KEY_SECRET_ID")
 	do(&args.projectID, "GCP_PROJECT_ID")
 	do(&args.metricPrefix, "METRIC_PREFIX")
 	do(&args.metricTags, "METRIC_TAGS")
@@ -119,6 +159,7 @@ func argsFromCommandLine(name string) arguments {
 	args := arguments{}
 	flags := flag.NewFlagSet(name, flag.ExitOnError)
 	flags.StringVar(&args.datadogAPIKeyFile, "datadog-api-key-file", "", "File containing the Datadog API key")
+	flags.StringVar(&args.datadogAPIKeySecretID, "datadog-api-key-secret-id", "", "Google Secret Manager Resource ID containing the Datadog API key")
 	flags.StringVar(&args.projectID, "gcp-project-id", "", "The GCP project to extract BigQuery metrics from")
 	flags.StringVar(&args.metricPrefix, "metric-prefix", "", fmt.Sprintf("The prefix for the metrics names exported to Datadog (Default %s)", DefaultMetricPrefix))
 	flags.StringVar(&args.metricInterval, "metric-interval", "", fmt.Sprintf("The interval between metrics submissions (Default %s", DefaultMetricInterval))
