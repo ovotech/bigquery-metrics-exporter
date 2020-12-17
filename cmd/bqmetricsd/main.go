@@ -35,7 +35,7 @@ func main() {
 
 func init() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	log.Logger = log.With().Str("application", cmdName).Logger()
+	log.Logger = log.With().Str("application", cmdName).Str("version", config.Version).Logger()
 	ll := config.GetEnv("LOG_LEVEL", "info")
 	level, err := zerolog.ParseLevel(ll)
 	if err != nil {
