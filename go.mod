@@ -15,6 +15,7 @@ require (
 	github.com/nbutton23/zxcvbn-go v0.0.0-20180912185939-ae427f1e4c1d // indirect
 	github.com/rs/zerolog v1.20.0
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
+	golang.org/x/oauth2 v0.0.0-20201109201403-9fd604954f58
 	golang.org/x/tools v0.0.0-20201215192005-fa10ef0b8743 // indirect
 	google.golang.org/api v0.36.0
 	google.golang.org/genproto v0.0.0-20201204160425-06b3db808446
