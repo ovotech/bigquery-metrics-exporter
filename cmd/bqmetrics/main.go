@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/config"
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/daemon"
 	"github.com/rs/zerolog"
@@ -11,7 +12,7 @@ import (
 const cmdName = "bqmetrics"
 
 func main() {
-	cfg, err := config.NewConfig(cmdName)
+	cfg, err := config.NewConfig(fmt.Sprintf("%s (Version %s)", cmdName, config.Version))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to parse config")
 	}

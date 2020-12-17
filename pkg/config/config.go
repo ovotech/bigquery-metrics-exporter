@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"golang.org/x/oauth2/google"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -18,6 +19,9 @@ var DefaultMetricPrefix = "custom.gcp.bigquery.table"
 
 // DefaultMetricInterval is the default period between table-level metric exports
 var DefaultMetricInterval = "30s"
+
+// Version is the version of the program
+var Version = "0.0.0"
 
 // Config contains application configuration details
 type Config struct {
@@ -60,6 +64,13 @@ func NewConfig(name string) (*Config, error) {
 	}
 
 	cnf.GcpProject = coalesce(cl.projectID, envs.projectID)
+	if cnf.GcpProject == "" {
+		cnf.GcpProject, err = getDefaultProjectID()
+		if err != nil {
+			return nil, fmt.Errorf("error retrieving default Google project ID: %w", err)
+		}
+	}
+
 	cnf.MetricPrefix = coalesce(cl.metricPrefix, envs.metricPrefix, DefaultMetricPrefix)
 	cnf.MetricTags = parseTagString(coalesce(cl.metricTags, envs.metricTags))
 
@@ -132,6 +143,18 @@ func getValueFromSecretManager(id string) (string, error) {
 	return string(resp.Payload.GetData()), nil
 }
 
+func getDefaultProjectID() (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	auth, err := google.FindDefaultCredentials(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return auth.ProjectID, nil
+}
+
 type arguments struct {
 	datadogAPIKey, datadogAPIKeyFile, datadogAPIKeySecretID, projectID, metricPrefix, metricInterval, metricTags string
 }
@@ -162,7 +185,7 @@ func argsFromCommandLine(name string) arguments {
 	flags.StringVar(&args.datadogAPIKeySecretID, "datadog-api-key-secret-id", "", "Google Secret Manager Resource ID containing the Datadog API key")
 	flags.StringVar(&args.projectID, "gcp-project-id", "", "The GCP project to extract BigQuery metrics from")
 	flags.StringVar(&args.metricPrefix, "metric-prefix", "", fmt.Sprintf("The prefix for the metrics names exported to Datadog (Default %s)", DefaultMetricPrefix))
-	flags.StringVar(&args.metricInterval, "metric-interval", "", fmt.Sprintf("The interval between metrics submissions (Default %s", DefaultMetricInterval))
+	flags.StringVar(&args.metricInterval, "metric-interval", "", fmt.Sprintf("The interval between metrics submissions (Default %s)", DefaultMetricInterval))
 	flags.StringVar(&args.metricTags, "metric-tags", "", "Comma-delimited list of tags to attach to metrics")
 
 	_ = flags.Parse(os.Args[1:])

@@ -1,5 +1,5 @@
 FROM golang:1.15-alpine as build
-RUN apk update && apk add build-base
+RUN apk update && apk add build-base git
 WORKDIR /src
 COPY . .
 RUN make
