@@ -20,6 +20,9 @@ var DefaultMetricPrefix = "custom.gcp.bigquery.table"
 // DefaultMetricInterval is the default period between table-level metric exports
 var DefaultMetricInterval = "30s"
 
+// Version is the version of the program
+var Version = "0.0.0"
+
 // Config contains application configuration details
 type Config struct {
 	DatadogAPIKey  string
