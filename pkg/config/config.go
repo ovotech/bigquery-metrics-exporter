@@ -162,7 +162,7 @@ func argsFromCommandLine(name string) arguments {
 	flags.StringVar(&args.datadogAPIKeySecretID, "datadog-api-key-secret-id", "", "Google Secret Manager Resource ID containing the Datadog API key")
 	flags.StringVar(&args.projectID, "gcp-project-id", "", "The GCP project to extract BigQuery metrics from")
 	flags.StringVar(&args.metricPrefix, "metric-prefix", "", fmt.Sprintf("The prefix for the metrics names exported to Datadog (Default %s)", DefaultMetricPrefix))
-	flags.StringVar(&args.metricInterval, "metric-interval", "", fmt.Sprintf("The interval between metrics submissions (Default %s", DefaultMetricInterval))
+	flags.StringVar(&args.metricInterval, "metric-interval", "", fmt.Sprintf("The interval between metrics submissions (Default %s)", DefaultMetricInterval))
 	flags.StringVar(&args.metricTags, "metric-tags", "", "Comma-delimited list of tags to attach to metrics")
 
 	_ = flags.Parse(os.Args[1:])
