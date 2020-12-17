@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"golang.org/x/oauth2/google"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -60,6 +61,13 @@ func NewConfig(name string) (*Config, error) {
 	}
 
 	cnf.GcpProject = coalesce(cl.projectID, envs.projectID)
+	if cnf.GcpProject == "" {
+		cnf.GcpProject, err = getDefaultProjectID()
+		if err != nil {
+			return nil, fmt.Errorf("error retrieving default Google project ID: %w", err)
+		}
+	}
+
 	cnf.MetricPrefix = coalesce(cl.metricPrefix, envs.metricPrefix, DefaultMetricPrefix)
 	cnf.MetricTags = parseTagString(coalesce(cl.metricTags, envs.metricTags))
 
@@ -130,6 +138,18 @@ func getValueFromSecretManager(id string) (string, error) {
 	}
 
 	return string(resp.Payload.GetData()), nil
+}
+
+func getDefaultProjectID() (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	auth, err := google.FindDefaultCredentials(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return auth.ProjectID, nil
 }
 
 type arguments struct {
