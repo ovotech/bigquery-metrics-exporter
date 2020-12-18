@@ -1,9 +1,5 @@
-FROM golang:1.15-alpine as build
-RUN apk update && apk add build-base git
-WORKDIR /src
-COPY . .
-RUN make
-
 FROM alpine:3.12
-COPY --from=build /src/bin/* /usr/local/bin/
+RUN addgroup -S bqmetrics && adduser -S -G bqmetrics bqmetrics
+USER bqmetrics
+COPY bqmetrics bqmetricsd /usr/local/bin/
 ENTRYPOINT ["bqmetricsd"]

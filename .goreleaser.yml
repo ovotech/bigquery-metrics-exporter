@@ -1,0 +1,59 @@
+project_name: bigquery-metrics-exporter
+before:
+  hooks:
+    - go mod download
+builds:
+  - id: bqmetrics
+    main: ./cmd/bqmetrics/main.go
+    binary: bqmetrics
+    ldflags:
+      - -s -w
+      - -X github.com/ovotech/bigquery-metrics-extractor/pkg/config.Version={{.Version}}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+  - id: bqmetricsd
+    main: ./cmd/bqmetricsd/main.go
+    binary: bqmetricsd
+    ldflags:
+      - -s -w
+      - -X github.com/ovotech/bigquery-metrics-extractor/pkg/config.Version={{.Version}}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      amd64: x86_64
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+dockers:
+  - binaries:
+      - bqmetrics
+      - bqmetricsd
+    builds:
+      - bqmetrics
+      - bqmetricsd
+    goos: linux
+    goarch: amd64
+    image_templates:
+      - "ovotech/{{ .ProjectName }}:latest"
+      - "ovotech/{{ .ProjectName }}:{{ .Tag }}"
+      - "ovotech/{{ .ProjectName }}:v{{ .Major }}"
+      - "ovotech/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}"
