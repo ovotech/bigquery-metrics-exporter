@@ -1,0 +1,52 @@
+version: 2.1
+
+jobs:
+  release:
+    docker:
+      - image: circleci/golang:1.15
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: goreleaser
+          command: |
+            echo $DOCKER_PASS | docker login -u=$DOCKER_USER --password-stdin
+            curl -sL https://git.io/goreleaser | VERSION=v0.149.0 bash
+
+  go-test:
+    docker:
+      - image: circleci/golang:1.15
+    steps:
+      - checkout
+      - run: make test
+
+  go-lint:
+    docker:
+      - image: circleci/golang:1.15
+    steps:
+      - checkout
+      - run: make lint
+
+  go-build:
+    docker:
+      - image: circleci/golang:1.15
+    steps:
+      - checkout
+      - run: make build
+
+workflows:
+  release:
+    jobs:
+      - release:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v?[0-9]+(\.[0-9]+)*(-.*)*/
+
+  quality-checks:
+    jobs:
+      - go-test
+      - go-lint
+      - go-build
