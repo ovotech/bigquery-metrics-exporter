@@ -3,7 +3,7 @@
 A Golang application to export table level metrics from BigQuery into Datadog.
 
 ## Configuration
-`bqmetrics` and `bqmetrics` take the same optional parameters.
+`bqmetrics` and `bqmetricsd` take the same optional parameters.
 
 It is required that the Datadog API key is set using one of the below options
 in order to run. Credentials also need to be provided for connecting to the
