@@ -90,7 +90,7 @@ func iterateDatasets(ctx context.Context, client *bigquery.Client) chan *bigquer
 				log.Err(err).
 					Msg("An error occurred when fetching dataset information")
 
-				continue
+				break
 			}
 
 			out <- ds
@@ -120,7 +120,7 @@ func iterateTables(ctx context.Context, ds *bigquery.Dataset) chan *bigquery.Tab
 					Str("dataset_id", ds.DatasetID).
 					Msg("An error occurred when fetching table information")
 
-				continue
+				break
 			}
 
 			out <- tbl
