@@ -1,3 +1,6 @@
 .idea/
+.terraform/
 bin/
 dist/
+*.tfstate
+*.tfstate.backup
