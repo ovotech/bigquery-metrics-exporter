@@ -1,18 +1,20 @@
 version: 2.1
 
+orbs:
+  gcp-gcr: circleci/gcp-gcr@0.11.0
+
 jobs:
   release:
     docker:
       - image: circleci/golang:1.15
     steps:
       - checkout
+      - gcp-gcr/gcr-auth
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
           name: goreleaser
-          command: |
-            echo $DOCKER_PASS | docker login -u=$DOCKER_USER --password-stdin
-            curl -sL https://git.io/goreleaser | VERSION=v0.149.0 bash
+          command: curl -sL https://git.io/goreleaser | VERSION=v0.149.0 bash
 
   go-test:
     docker:
