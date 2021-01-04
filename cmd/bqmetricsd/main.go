@@ -7,6 +7,8 @@ import (
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/daemon"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 )
@@ -20,6 +22,15 @@ func main() {
 	cfg, err := config.NewConfig(fmt.Sprintf("%s (Version %s)", cmdName, config.Version))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to parse config")
+	}
+
+	if cfg.Profiling {
+		addr := "localhost:6060"
+		log.Info().Msgf("Running profiler on %s", addr)
+
+		go func() {
+			log.Err(http.ListenAndServe(addr, nil)).Msg("Shutting down profiler")
+		}()
 	}
 
 	app, err := daemon.NewRunner(ctx, cfg)

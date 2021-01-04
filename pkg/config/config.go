@@ -30,6 +30,7 @@ type Config struct {
 	MetricPrefix   string
 	MetricTags     []string
 	MetricInterval time.Duration
+	Profiling      bool
 }
 
 // NewConfig returns a Config by merging in the values from environment variables
@@ -78,6 +79,8 @@ func NewConfig(name string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error parsing metric interval: %w", err)
 	}
+
+	cnf.Profiling = cl.profiling
 
 	err = ValidateConfig(cnf)
 	if err != nil {
@@ -157,6 +160,7 @@ func getDefaultProjectID() (string, error) {
 
 type arguments struct {
 	datadogAPIKey, datadogAPIKeyFile, datadogAPIKeySecretID, projectID, metricPrefix, metricInterval, metricTags string
+	profiling bool
 }
 
 func argsFromEnv() arguments {
@@ -187,6 +191,7 @@ func argsFromCommandLine(name string) arguments {
 	flags.StringVar(&args.metricPrefix, "metric-prefix", "", fmt.Sprintf("The prefix for the metrics names exported to Datadog (Default %s)", DefaultMetricPrefix))
 	flags.StringVar(&args.metricInterval, "metric-interval", "", fmt.Sprintf("The interval between metrics submissions (Default %s)", DefaultMetricInterval))
 	flags.StringVar(&args.metricTags, "metric-tags", "", "Comma-delimited list of tags to attach to metrics")
+	flags.BoolVar(&args.profiling, "enable-profiler", false, "Enables the profiler")
 
 	_ = flags.Parse(os.Args[1:])
 
