@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/config"
 	"github.com/rs/zerolog/log"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -44,6 +45,14 @@ func (dp *DatadogPublisher) PublishMetricsSet(ctx context.Context, metrics []Met
 
 	resp, err := http.DefaultClient.Do(request)
 	if err != nil {
+		return NewRecoverableError(err)
+	}
+
+	if _, err = ioutil.ReadAll(resp.Body); err != nil {
+		return NewRecoverableError(err)
+	}
+
+	if err = resp.Body.Close(); err != nil {
 		return NewRecoverableError(err)
 	}
 
