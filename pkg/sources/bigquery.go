@@ -77,13 +77,13 @@ func iterateDatasets(ctx context.Context, client *bigquery.Client) chan *bigquer
 	out = make(chan *bigquery.Dataset)
 
 	go func() {
+		defer close(out)
 		iter := client.Datasets(ctx)
 
 		for {
 			ds, err := iter.Next()
 			if err != nil {
 				if err == iterator.Done {
-					close(out)
 					break
 				}
 
@@ -105,13 +105,13 @@ func iterateTables(ctx context.Context, ds *bigquery.Dataset) chan *bigquery.Tab
 	out = make(chan *bigquery.Table)
 
 	go func() {
+		defer close(out)
 		iter := ds.Tables(ctx)
 
 		for {
 			tbl, err := iter.Next()
 			if err != nil {
 				if err == iterator.Done {
-					close(out)
 					break
 				}
 
