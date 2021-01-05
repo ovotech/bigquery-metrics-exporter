@@ -57,21 +57,33 @@ variable "region" {
   default     = ""
 }
 
-variable "zone" {
-  type        = string
-  description = "The zone to run the bqmetrics service in"
-  default     = ""
-}
-
 variable "service-account-email" {
   type        = string
   description = "The service account email to run the bqmetrics service under"
   default     = ""
 }
 
+variable "stackdriver-logging" {
+  type        = bool
+  description = "Enables exporting of instance logs to Stackdriver (For bqmetrics service logs, etc.)"
+  default     = false
+}
+
+variable "stackdriver-monitoring" {
+  type        = bool
+  description = "Enables exporting of instance metrics to Stackdriver (For monitoring of RAM usage of bqmetrics service, etc.)"
+  default     = false
+}
+
 variable "subnetwork" {
   type        = string
   description = "The subnetwork to connect the bqmetrics instance to"
+}
+
+variable "zone" {
+  type        = string
+  description = "The zone to run the bqmetrics service in"
+  default     = ""
 }
 
 data "google_client_config" "current" {}
