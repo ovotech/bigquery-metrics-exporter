@@ -40,11 +40,11 @@ resource "google_compute_instance_template" "bqmetricsd" {
     (module.container.vm_container_label_key) = module.container.vm_container_label
   }
 
-  metadata = {
-    (module.container.metadata_key) = module.container.metadata_value
-    google-logging-enabled          = "true"
-    google-monitoring-enabled       = "true"
-  }
+  metadata = merge(
+    { (module.container.metadata_key) = module.container.metadata_value },
+    var.stackdriver-monitoring ? { google-monitoring-enabled = "true" } : {},
+    var.stackdriver-logging ? { google-logging-enabled = "true" } : {},
+  )
 
   service_account {
     email  = local.service-account-email
