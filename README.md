@@ -2,58 +2,83 @@
 
 A Golang application to export table level metrics from BigQuery into Datadog.
 
+Two binaries are provided. `bqmetrics` runs a single round of metrics
+collection. `bqmetricsd` runs metrics collection continually according to the
+provided metric collection interval.
+
+## Metrics
+The metrics exporter queries the BigQuery metadata API to generate metrics. The
+metadata API only stores this information for **tables** and **materialized
+views**, so views and external data sources will not have metrics exported.
+
+The following metrics are generated:
+* **row_count** - The number of rows in the table
+* **last_modified** - The number of seconds since this table was last modified
+* **last_modified_time** - The timestamp when the table was last modified
+
+Inserting or modifying data in the table also updates the last modified time,
+so those metrics can be used as a measure of data freshness.
+
+## Recommended usage
+It is recommended to run the metrics collection daemon `bqmetricsd` which will
+continually collect metrics and ship them to Datadog according to the provided
+schedule.
+```
+bqmetricsd \
+  --datadog-api-key-file datadog.key \
+  --gcp-project-id my-project \
+  --metric-interval 1m \
+  --metric-tags team:myteam,env:prod
+```
+
+### Running in Google Cloud Platform
+Running in Google Cloud Platform is the preferred method of operation as it
+will reduce latency for metrics collection and simplify authentication to the
+BigQuery API. A [Terraform provider](terraform/gcp/README.md) is provided to
+simplify running the daemon in GCP.
+
+The Terraform provider makes use of Google Secrets Manager to handle the
+Datadog API secret key. This secret can be created with the `gcloud` CLI
+utility using the following command:
+```shell
+printf "secret" | gcloud secrets create datadog-api-key --data-file=-
+```
+
+Depending on organizational policy, you may need to restrict the secret to
+certain locations. See `gcloud secrets create --help` for full details.
+
+An existing secret can be updated with the following commands:
+```shell
+printf "secret" | gcloud secrets versions add datadog-api-key --data-file=-
+```
+
 ## Configuration
-`bqmetrics` and `bqmetricsd` take the same optional parameters.
+`bqmetrics` and `bqmetricsd` take the same optional parameters. Parameters
+can be supplied as either environment variables or on the command line, and
+configuration passed on the command line takes precedence over environment
+variables.
 
 It is required that the Datadog API key is set using one of the below options
 in order to run. Credentials also need to be provided for connecting to the
 GCP APIs, although that may be handled automatically by the environment. See
-[the Google authentication documentation](https://cloud.google.com/docs/authentication/production) 
-for more information. All other parameters are optional.
+[the Google Cloud Platform authentication documentation](https://cloud.google.com/docs/authentication/production)
+for more information. The Google Cloud Project ID is also required. All other
+parameters are optional.
 
-```
---datadog-api-key-file
-    File containing the Datadog API key
---datadog-api-key-secret-id
-    Google Secret Manager Resource ID containing the Datadog API key
---gcp-project-id
-    The GCP project to extract BigQuery metrics from
---metric-interval
-    The interval between metrics submissions (Default 30s)
---metric-prefix
-    The prefix for the metric names exported to Datadog (Default custom.gcp.bigquery.table)
---metric-tags
-    Comma-delimited list of tags to attach to metrics
-```
-
-All parameters can be supplied as environment variables instead, and there
-are additional environment variables that are not available as parameters.
-Configuration supplied as parameters to the command takes precedence over
-environment variables.
-
-```
-DATADOG_API_KEY
-    The Datadog API key
-DATADOG_API_KEY_FILE
-    File containing the Datadog API key
-DATADOG_API_KEY_SECRET_ID
-    Google Secret Manager Resource ID containing the Datadog API key
-GCP_PROJECT_ID
-    The GCP project to extract BigQuery metrics from
-GOOGLE_APPLICATION_CREDENTIALS
-    File containing the service account details to authenticate to GCP using
-LOG_LEVEL
-    The logging level (e.g. trace, debug, info, warn, error)
-METRIC_INTERVAL
-    The interval between metrics submissions (Default 30s)
-METRIC_PREFIX
-    The prefix for the metric names exported to Datadog (Default custom.gcp.bigquery.table)
-METRIC_TAG
-    Comma-delimited list of tags to attach to metrics
-```
+| Environment Variable | Parameter | Description |
+| --- | --- | --- |
+| DATADOG_API_KEY |  | The Datadog API key |
+| DATADOG_API_KEY_FILE | --datadog-api-key-file | File containing Datadog API key |
+| DATADOG_API_KEY_SECRET_ID | --datadog-api-key-secret-id | Path to a secret held in Google Secret Manager containing Datadog API key, e.g. `projects/my-project/secrets/datadog-api-key/versions/3` |
+| GCP_PROJECT_ID | --gcp-project-id | (Required) The Google Cloud project containing the BigQuery tables to retrieve metrics from |
+| GOOGLE_APPLICATION_CREDENTIALS | | File containing service account details to authenticate to Google Cloud using |
+| LOG_LEVEL | | The logging level (e.g. trace, debug, info, warn, error). Defaults to *info* |
+| METRIC_INTERVAL | --metric-interval | The interval between metric collection rounds. Must contain a unit and valid units are "ns", "us" (or "µs"), "ms", "s", "m", "h". Defaults to *30s* |
+| METRIC_PREFIX | --metric-prefix | The prefix for the metric names exported to Datadog. Defaults to *custom.gcp.bigquery.table* |
+| METRIC_TAGS | --metric-tags | Comma-delimited list of tags to attach to metrics (e.g. env:prod,team:myteam) |
 
 ### GCP Service Account permissions
-The service account may require the following roles:
+The service account running `bqmetricsd` may require the following roles:
 ```
 BigQuery Metadata Viewer
     Required to generate table level metrics
