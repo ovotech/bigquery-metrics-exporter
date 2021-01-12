@@ -61,6 +61,11 @@ func (g Generator) outputTableLevelMetrics(ctx context.Context, t *bigquery.Tabl
 		return
 	}
 
+	// Only tables of type RegularTable and MaterializedView have the required metadata present
+	if meta.Type == bigquery.ViewTable || meta.Type == bigquery.ExternalTable {
+		return
+	}
+
 	tags := []string{
 		fmt.Sprintf("dataset_id:%s", t.DatasetID),
 		fmt.Sprintf("table_id:%s", t.TableID),
