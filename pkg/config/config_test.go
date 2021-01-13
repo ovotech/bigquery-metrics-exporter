@@ -37,41 +37,41 @@ func TestNewConfig(t *testing.T) {
 		want    *Config
 		wantErr bool
 	}{
-		{"all via env", setup([]string{"DATADOG_API_KEY=abc123", "GCP_PROJECT_ID=ovo-project-id", "METRIC_PREFIX=custom.gcp.bigquery.stats", "METRIC_TAGS=env:prod", "METRIC_INTERVAL=2m"}, nil, ""), args{"bqmetricstest"}, &Config{
+		{"all via env", setup([]string{"DATADOG_API_KEY=abc123", "GCP_PROJECT_ID=my-project-id", "METRIC_PREFIX=custom.gcp.bigquery.stats", "METRIC_TAGS=env:prod", "METRIC_INTERVAL=2m"}, nil, ""), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
-			GcpProject:     "ovo-project-id",
+			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: 2 * time.Minute,
 			Profiling:      false,
 		}, false},
-		{"all via cmd", setup(nil, []string{"--datadog-api-key-file=/tmp/dd.key", "--gcp-project-id=ovo-project-id", "--metric-prefix=custom.gcp.bigquery.stats", "--metric-tags=env:prod", "--metric-interval=2m", "--enable-profiler"}, "abc123"), args{"bqmetricstest"}, &Config{
+		{"all via cmd", setup(nil, []string{"--datadog-api-key-file=/tmp/dd.key", "--gcp-project-id=my-project-id", "--metric-prefix=custom.gcp.bigquery.stats", "--metric-tags=env:prod", "--metric-interval=2m", "--enable-profiler"}, "abc123"), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
-			GcpProject:     "ovo-project-id",
+			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: 2 * time.Minute,
 			Profiling:      true,
 		}, false},
-		{"mixture of sources", setup([]string{"DATADOG_API_KEY=abc123", "GCP_PROJECT_ID=ovo-project-id"}, []string{"--metric-prefix=custom.gcp.bigquery.stats", "--metric-tags=env:prod", "--metric-interval=2m"}, ""), args{"bqmetricstest"}, &Config{
+		{"mixture of sources", setup([]string{"DATADOG_API_KEY=abc123", "GCP_PROJECT_ID=my-project-id"}, []string{"--metric-prefix=custom.gcp.bigquery.stats", "--metric-tags=env:prod", "--metric-interval=2m"}, ""), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
-			GcpProject:     "ovo-project-id",
+			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: 2 * time.Minute,
 			Profiling:      false,
 		}, false},
-		{"minimum required config", setup([]string{"DATADOG_API_KEY=abc123", "GCP_PROJECT_ID=ovo-project-id"}, nil, ""), args{"bqmetricstest"}, &Config{
+		{"minimum required config", setup([]string{"DATADOG_API_KEY=abc123", "GCP_PROJECT_ID=my-project-id"}, nil, ""), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
-			GcpProject:     "ovo-project-id",
+			GcpProject:     "my-project-id",
 			MetricPrefix:   DefaultMetricPrefix,
 			MetricTags:     nil,
 			MetricInterval: 30 * time.Second,
 			Profiling:      false,
 		}, false},
-		{"unreadable key file", setup([]string{"DATADOG_API_KEY_FILE=/tmp/not-found.key", "GCP_PROJECT_ID=ovo-project-id"}, nil, "abc123"), args{"bqmetricstest"}, nil, true},
-		{"unparseable interval", setup([]string{"DATADOG_API_KEY_FILE=/tmp/dd.key", "GCP_PROJECT_ID=ovo-project-id"}, []string{"--metric-interval=notaduration"}, "abc123"), args{"bqmetricstest"}, nil, true},
-		{"missing key", setup([]string{"GCP_PROJECT_ID=ovo-project-id"}, nil, ""), args{"bqmetricstest"}, nil, true},
+		{"unreadable key file", setup([]string{"DATADOG_API_KEY_FILE=/tmp/not-found.key", "GCP_PROJECT_ID=my-project-id"}, nil, "abc123"), args{"bqmetricstest"}, nil, true},
+		{"unparseable interval", setup([]string{"DATADOG_API_KEY_FILE=/tmp/dd.key", "GCP_PROJECT_ID=my-project-id"}, []string{"--metric-interval=notaduration"}, "abc123"), args{"bqmetricstest"}, nil, true},
+		{"missing key", setup([]string{"GCP_PROJECT_ID=my-project-id"}, nil, ""), args{"bqmetricstest"}, nil, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -100,14 +100,14 @@ func TestValidateConfig(t *testing.T) {
 	}{
 		{"valid", args{&Config{
 			DatadogAPIKey:  "abc123",
-			GcpProject:     "ovo-project-id",
+			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: time.Duration(30000),
 		}}, false},
 		{"missing datadog api key", args{&Config{
 			DatadogAPIKey:  "",
-			GcpProject:     "ovo-project-id",
+			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: time.Duration(30000),
@@ -121,28 +121,28 @@ func TestValidateConfig(t *testing.T) {
 		}}, true},
 		{"missing metric prefix", args{&Config{
 			DatadogAPIKey:  "abc123",
-			GcpProject:     "ovo-project-id",
+			GcpProject:     "my-project-id",
 			MetricPrefix:   "",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: time.Duration(30000),
 		}}, true},
 		{"missing metric tags", args{&Config{
 			DatadogAPIKey:  "abc123",
-			GcpProject:     "ovo-project-id",
+			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     nil,
 			MetricInterval: time.Duration(30000),
 		}}, false},
 		{"missing metric interval", args{&Config{
 			DatadogAPIKey:  "abc123",
-			GcpProject:     "ovo-project-id",
+			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: time.Duration(0),
 		}}, true},
 		{"missing profiling", args{&Config{
 			DatadogAPIKey:  "abc123",
-			GcpProject:     "ovo-project-id",
+			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: time.Duration(30000),
@@ -180,9 +180,9 @@ func Test_argsFromCommandLine(t *testing.T) {
 	}{
 		{"datadog-api-key-file", setup("--datadog-api-key-file", "/tmp/dd.key"), args{"bqmetricstest"}, arguments{datadogAPIKeyFile: "/tmp/dd.key"}},
 		{"datadog-api-key-file empty", setup("", ""), args{"bqmetricstest"}, arguments{datadogAPIKeyFile: ""}},
-		{"datadog-api-key-secret-id", setup("--datadog-api-key-secret-id", "projects/energy-insights-nonprod/secrets/datadog-api-key/versions/latest"), args{"bqmetricstest"}, arguments{datadogAPIKeySecretID: "projects/energy-insights-nonprod/secrets/datadog-api-key/versions/latest"}},
+		{"datadog-api-key-secret-id", setup("--datadog-api-key-secret-id", "projects/my-project/secrets/datadog-api-key/versions/latest"), args{"bqmetricstest"}, arguments{datadogAPIKeySecretID: "projects/my-project/secrets/datadog-api-key/versions/latest"}},
 		{"datadog-api-key-secret-id empty", setup("", ""), args{"bqmetricstest"}, arguments{datadogAPIKeySecretID: ""}},
-		{"gcp-project-id", setup("--gcp-project-id", "ovo-project-one"), args{"bqmetricstest"}, arguments{projectID: "ovo-project-one"}},
+		{"gcp-project-id", setup("--gcp-project-id", "my-project-one"), args{"bqmetricstest"}, arguments{projectID: "my-project-one"}},
 		{"gcp-project-id empty", setup("", ""), args{"bqmetricstest"}, arguments{projectID: ""}},
 		{"metric-prefix", setup("--metric-prefix", "custom.gcp.bigquery.stats"), args{"bqmetricstest"}, arguments{metricPrefix: "custom.gcp.bigquery.stats"}},
 		{"metric-prefix empty", setup("", ""), args{"bqmetricstest"}, arguments{metricPrefix: ""}},
@@ -226,9 +226,9 @@ func Test_argsFromEnv(t *testing.T) {
 		{"empty datadog_api_key", setup("", ""), arguments{datadogAPIKey: ""}},
 		{"datadog_api_key_file", setup("DATADOG_API_KEY_FILE", "/tmp/dd.key"), arguments{datadogAPIKeyFile: "/tmp/dd.key"}},
 		{"empty datadog_api_key_file", setup("", ""), arguments{datadogAPIKeyFile: ""}},
-		{"datadog_api_key_secret_id", setup("DATADOG_API_KEY_SECRET_ID", "projects/energy-insights-nonprod/secrets/datadog-api-key/versions/latest"), arguments{datadogAPIKeySecretID: "projects/energy-insights-nonprod/secrets/datadog-api-key/versions/latest"}},
+		{"datadog_api_key_secret_id", setup("DATADOG_API_KEY_SECRET_ID", "projects/my-project/secrets/datadog-api-key/versions/latest"), arguments{datadogAPIKeySecretID: "projects/my-project/secrets/datadog-api-key/versions/latest"}},
 		{"empty datadog_api_key_secret_id", setup("", ""), arguments{datadogAPIKeySecretID: ""}},
-		{"gcp_project_id", setup("GCP_PROJECT_ID", "ovo-project-one"), arguments{projectID: "ovo-project-one"}},
+		{"gcp_project_id", setup("GCP_PROJECT_ID", "my-project-one"), arguments{projectID: "my-project-one"}},
 		{"empty gcp_project_id", setup("", ""), arguments{projectID: ""}},
 		{"metric_prefix", setup("METRIC_PREFIX", "custom.gcp.bigquery.stats"), arguments{metricPrefix: "custom.gcp.bigquery.stats"}},
 		{"empty metric_prefix", setup("", ""), arguments{metricPrefix: ""}},
