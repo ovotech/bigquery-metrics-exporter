@@ -53,20 +53,34 @@ printf "secret" | gcloud secrets versions add datadog-api-key --data-file=-
 ```
 
 ## Configuration
-`bqmetrics` and `bqmetricsd` take the same optional parameters. Parameters
-can be supplied as either environment variables or on the command line, and
-configuration passed on the command line takes precedence over environment
-variables.
+`bqmetrics` and `bqmetricsd` are both configurable using the same mechanisms,
+either a config file, environment variables, or on the command line. Config set
+on the command line has priority over environment variables, which in turn have
+priority over the config file.
 
-It is required that the Datadog API key is set using one of the below options
-in order to run. Credentials also need to be provided for connecting to the
-GCP APIs, although that may be handled automatically by the environment. See
-[the Google Cloud Platform authentication documentation](https://cloud.google.com/docs/authentication/production)
+It is required that the Datadog API key is set using one of the available 
+options in order to run. Credentials also need to be provided for connecting 
+to the GCP APIs, although that may be handled automatically by the environment.
+See [the Google Cloud Platform authentication documentation](https://cloud.google.com/docs/authentication/production)
 for more information. The Google Cloud Project ID is also required. All other
 parameters are optional.
 
+### Config file
+See [example-config.yaml](./example-config.yaml) for an example config file
+that details all the current configuration.
+
+`bqmetrics` and `bqmetricsd` will by default search for a config file at
+`/etc/bqmetrics/config.yaml` and `~/.bqmetrics/config.yaml`, although you can
+also specify the path to a config file using the `--config-file` command line
+parameter or the `CONFIG_FILE` environment variable.
+
+### Environment and command line parameters
+Below is a list of configuration available as environment variables and command
+line options.
+
 | Environment Variable | Parameter | Description |
 | --- | --- | --- |
+| CONFIG_FILE | --config-file | Path to the config file |
 | DATADOG_API_KEY |  | The Datadog API key |
 | DATADOG_API_KEY_FILE | --datadog-api-key-file | File containing Datadog API key |
 | DATADOG_API_KEY_SECRET_ID | --datadog-api-key-secret-id | Path to a secret held in Google Secret Manager containing Datadog API key, e.g. `projects/my-project/secrets/datadog-api-key/versions/3` |
