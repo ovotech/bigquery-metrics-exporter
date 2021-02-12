@@ -186,19 +186,19 @@ func getValueFromSecretManager(id string) (string, error) {
 
 func handleAliases(vpr *viper.Viper, target string) error {
 	if path := vpr.GetString(fmt.Sprintf("%s-file", target)); path != "" {
-		if val, err := getValueFromFile(path); err != nil {
+		val, err := getValueFromFile(path)
+		if err != nil {
 			return fmt.Errorf("failed to handle file alias: %w", err)
-		} else {
-			vpr.Set(target, val)
 		}
+		vpr.Set(target, val)
 	}
 
 	if id := vpr.GetString(fmt.Sprintf("%s-secret-id", target)); id != "" {
-		if val, err := getValueFromSecretManager(id); err != nil {
+		val, err := getValueFromSecretManager(id)
+		if err != nil {
 			return fmt.Errorf("failed to handle secret manager alias: %w", err)
-		} else {
-			vpr.Set(target, val)
 		}
+		vpr.Set(target, val)
 	}
 
 	return nil
@@ -216,11 +216,11 @@ func handleEnvBindings(vpr *viper.Viper, fs *pflag.FlagSet) {
 
 func handleFinalDefaults(cfg *Config) error {
 	if cfg.GcpProject == "" {
-		if def, err := getDefaultProjectID(); err != nil {
+		def, err := getDefaultProjectID()
+		if err != nil {
 			return nil
-		} else {
-			cfg.GcpProject = def
 		}
+		cfg.GcpProject = def
 	}
 
 	return nil
