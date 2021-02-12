@@ -59,7 +59,7 @@ func NewConfig(name string) (*Config, error) {
 
 	handleEnvBindings(vpr, fs)
 
-	cfgFile, _ := fs.GetString("config")
+	cfgFile, _ := fs.GetString("config-file")
 	if cfgFile != "" {
 		vpr.SetConfigFile(cfgFile)
 	}
@@ -131,7 +131,7 @@ func configFlags(name string) *pflag.FlagSet {
 	}
 
 	flags := pflag.NewFlagSet(name, pflag.ExitOnError)
-	flags.String("config", "", "Path to the config file")
+	flags.String("config-file", "", "Path to the config file")
 	flags.String("datadog-api-key-file", "", "File containing the Datadog API key")
 	flags.String("datadog-api-key-secret-id", "", "Google Secret Manager Resource ID containing the Datadog API key")
 	flags.String("gcp-project-id", "", "The GCP project to extract BigQuery metrics from")

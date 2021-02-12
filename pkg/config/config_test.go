@@ -112,7 +112,7 @@ func TestNewConfig_configFile(t *testing.T) {
 		t.Fatalf("error when writing test config file: %s", err)
 	}
 
-	os.Args = []string{"./bqmetricstest", "--config", f.Name()}
+	os.Args = []string{"./bqmetricstest", "--config-file", f.Name()}
 	want := &Config{
 		DatadogAPIKey:  "abc123",
 		GcpProject:     "my-project-id",
