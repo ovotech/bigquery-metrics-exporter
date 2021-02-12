@@ -69,6 +69,14 @@ func TestNewConfig(t *testing.T) {
 			MetricInterval: 30 * time.Second,
 			Profiling:      false,
 		}, false},
+		{"default credentials", setup([]string{"DATADOG_API_KEY=abc123", "GOOGLE_APPLICATION_CREDENTIALS=/tmp/dd.key"}, nil, "{\"type\": \"service_account\", \"project_id\": \"my-project-id\"}"), args{"bqmetricstest"}, &Config{
+			DatadogAPIKey:  "abc123",
+			GcpProject:     "my-project-id",
+			MetricPrefix:   DefaultMetricPrefix,
+			MetricTags:     nil,
+			MetricInterval: 30 * time.Second,
+			Profiling:      false,
+		}, false},
 		{"unreadable key file", setup([]string{"DATADOG_API_KEY_FILE=/tmp/not-found.key", "GCP_PROJECT_ID=my-project-id"}, nil, "abc123"), args{"bqmetricstest"}, nil, true},
 		{"missing key", setup([]string{"GCP_PROJECT_ID=my-project-id"}, nil, ""), args{"bqmetricstest"}, nil, true},
 	}
@@ -85,6 +93,42 @@ func TestNewConfig(t *testing.T) {
 				t.Errorf("NewConfig() got = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestNewConfig_configFile(t *testing.T) {
+	f, err := ioutil.TempFile(os.TempDir(), "config_*.json")
+	if err != nil {
+		t.Fatalf("error creating temporary file: %s", err)
+	}
+	defer func() {
+		n := f.Name()
+		_ = f.Close()
+		_ = os.Remove(n)
+	}()
+
+	data := []byte("{\"datadog-api-key\": \"abc123\", \"gcp-project-id\": \"my-project-id\", \"metric-prefix\": \"custom.gcp.bigquery.stats\", \"metric-tags\": \"env:prod,team:my-team\", \"metric-interval\": \"2m\"}")
+	if _, err = f.Write(data); err != nil {
+		t.Fatalf("error when writing test config file: %s", err)
+	}
+
+	os.Args = []string{"./bqmetricstest", "--config", f.Name()}
+	want := &Config{
+		DatadogAPIKey:  "abc123",
+		GcpProject:     "my-project-id",
+		MetricPrefix:   "custom.gcp.bigquery.stats",
+		MetricTags:     []string{"env:prod", "team:my-team"},
+		MetricInterval: 2 * time.Minute,
+		Profiling:      false,
+	}
+
+	got, err := NewConfig("bqmetricstest")
+	if err != nil {
+		t.Errorf("NewConfig() error = %v, wantErr false", err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("NewConfig() got = %v, want %v", got, want)
 	}
 }
 
@@ -192,5 +236,52 @@ func TestGetEnv(t *testing.T) {
 				t.Errorf("GetEnv() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func Test_getDefaultProjectID_missingAuthentication(t *testing.T) {
+	want := ""
+
+	os.Clearenv()
+	_ = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "/tmp/non_existing_credentials.json")
+
+	got, err := getDefaultProjectID()
+	if err == nil {
+		t.Errorf("getDefaultProjectID() error = %v, wantErr %v", err, true)
+		return
+	}
+	if got != want {
+		t.Errorf("getDefaultProjectID() got = %v, want %v", got, want)
+	}
+}
+
+func Test_getDefaultProjectID_presentAuthentication(t *testing.T) {
+	f, err := ioutil.TempFile(os.TempDir(), "config_*.json")
+	if err != nil {
+		t.Fatalf("error creating temporary file: %s", err)
+	}
+	defer func() {
+		n := f.Name()
+		_ = f.Close()
+		_ = os.Remove(n)
+	}()
+
+	data := []byte("{\"type\": \"service_account\", \"project_id\": \"my-project-id\"}")
+	if _, err = f.Write(data); err != nil {
+		t.Fatalf("error when writing test config file: %s", err)
+	}
+
+	os.Clearenv()
+	_ = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", f.Name())
+
+	want := "my-project-id"
+
+	got, err := getDefaultProjectID()
+	if err != nil {
+		t.Errorf("getDefaultProjectID() error = %v, wantErr %v", err, false)
+		return
+	}
+	if got != want {
+		t.Errorf("getDefaultProjectID() got = %v, want %v", got, want)
 	}
 }
