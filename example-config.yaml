@@ -1,0 +1,35 @@
+###
+# The Datadog API key must be specified using one of the following three
+# parameters. The key value can be set directly in the config, or a file
+# containing the key specified. Alternatively, a reference to a Google Secrets
+# Manager secret that contains the key can be made.
+#
+# datadog-api-key: ***REDACTED***
+# datadog-api-key-file: /etc/
+# datadog-api-key-secret-id: projects/my-project/secrets/my-datadog-api-key/version/latest
+
+###
+# The ID of the GCP project to collect BigQuery table metrics from must be
+# specified
+#
+# gcp-project-id: my-project
+
+###
+# How frequently table metrics should be collected and published to Datadog.
+# Metric Interval must contain a unit and valid units are "ns", "us" (or "µs"),
+# "ms", "s", "m", "h". Defaults to 30s
+#
+# metric-interval: 2m
+
+###
+# The prefix for the metric name, so that all metrics are grouped and easily
+# identifiable in the Datadog interface. Defaults to custom.gcp.bigquery.table
+#
+# metric-prefix: my-team.bigquery.table-metrics
+
+###
+# An array of tags to publish with the metrics data
+#
+# metric-tags:
+#   - env:prod
+#   - team:my-team
