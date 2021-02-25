@@ -97,11 +97,29 @@ func NewConfig(name string) (*Config, error) {
 		return nil, fmt.Errorf("could not handle defaults: %w", err)
 	}
 
+	NormaliseConfig(&cfg)
 	if err = ValidateConfig(&cfg); err != nil {
 		return nil, fmt.Errorf("error validating config: %w", err)
 	}
 
 	return &cfg, nil
+}
+
+// NormaliseConfig will apply rules to normalise the config, specifically
+// * CustomMetric tags have the default tags appended
+// * CustomMetric interval is set to the default interval if missing
+func NormaliseConfig(c *Config) {
+	if len(c.CustomMetrics) == 0 {
+		return
+	}
+
+	for i := range c.CustomMetrics {
+		if c.CustomMetrics[i].MetricInterval == time.Duration(0) {
+			c.CustomMetrics[i].MetricInterval = c.MetricInterval
+		}
+
+		c.CustomMetrics[i].MetricTags = append(c.MetricTags, c.CustomMetrics[i].MetricTags...)
+	}
 }
 
 // ValidateConfig will validate that all of the required config parameters are present
@@ -120,6 +138,14 @@ func ValidateConfig(c *Config) error {
 
 	if c.MetricInterval == time.Duration(0) {
 		return ErrMissingMetricInterval
+	}
+
+	if len(c.CustomMetrics) > 0 {
+		for i, cm := range c.CustomMetrics {
+			if err := validateCustomMetric(cm); err != nil {
+				return fmt.Errorf("error in custom metric %d: %w", i, err)
+			}
+		}
 	}
 
 	return nil
@@ -230,6 +256,22 @@ func handleFinalDefaults(cfg *Config) error {
 			return nil
 		}
 		cfg.GcpProject = def
+	}
+
+	return nil
+}
+
+func validateCustomMetric(cm CustomMetric) error {
+	if cm.MetricInterval == time.Duration(0) {
+		return ErrMissingMetricInterval
+	}
+
+	if cm.MetricName == "" {
+		return ErrMissingMetricName
+	}
+
+	if cm.Sql == "" {
+		return ErrMissingCustomMetricSql
 	}
 
 	return nil
