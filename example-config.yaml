@@ -33,3 +33,19 @@
 # metric-tags:
 #   - env:prod
 #   - team:my-team
+
+###
+# An array of custom metrics to publish. Each custom metric has a name under
+# which it is published, as well as a list of tags (which are merged with the
+# global tags list) and collection interval.
+#
+# custom-metrics:
+#   - metric-name: cardinality
+#     metric-tags:
+#       - dataset_id:my-dataset
+#       - table_id:my-table
+#     metric-interval: 6h
+#     sql: |
+#       SELECT APPROX_COUNT_DISTINCT(`my-column-1`) AS `my-column-1`,
+#              APPROX_COUNT_DISTINCT(`my-column-2`) AS `my-column-2`
+#       FROM `my-project.my-dataset.my-table`

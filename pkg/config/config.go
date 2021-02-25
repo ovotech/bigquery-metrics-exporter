@@ -38,7 +38,16 @@ type Config struct {
 	MetricPrefix   string        `viper:"metric-prefix"`
 	MetricTags     []string      `viper:"metric-tags"`
 	MetricInterval time.Duration `viper:"metric-interval"`
+	CustomMetrics  []CustomMetric `viper:"custom-metrics"`
 	Profiling      bool          `viper:"enable-profiler"`
+}
+
+// CustomMetric holds details about a metric generated from an SQL query
+type CustomMetric struct {
+	MetricName string `viper:"metric-name"`
+	MetricTags []string `viper:"metric-tags"`
+	MetricInterval time.Duration `viper:"metric-interval"`
+	Sql string `viper:"sql"`
 }
 
 // NewConfig creates a config struct using the package viper for configuration
