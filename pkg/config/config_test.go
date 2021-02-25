@@ -69,8 +69,15 @@ func TestNewConfig(t *testing.T) {
 			MetricInterval: 30 * time.Second,
 			Profiling:      false,
 		}, false},
+		{"default credentials", setup([]string{"DATADOG_API_KEY=abc123", "GOOGLE_APPLICATION_CREDENTIALS=/tmp/dd.key"}, nil, "{\"type\": \"service_account\", \"project_id\": \"my-project-id\"}"), args{"bqmetricstest"}, &Config{
+			DatadogAPIKey:  "abc123",
+			GcpProject:     "my-project-id",
+			MetricPrefix:   DefaultMetricPrefix,
+			MetricTags:     nil,
+			MetricInterval: 30 * time.Second,
+			Profiling:      false,
+		}, false},
 		{"unreadable key file", setup([]string{"DATADOG_API_KEY_FILE=/tmp/not-found.key", "GCP_PROJECT_ID=my-project-id"}, nil, "abc123"), args{"bqmetricstest"}, nil, true},
-		{"unparseable interval", setup([]string{"DATADOG_API_KEY_FILE=/tmp/dd.key", "GCP_PROJECT_ID=my-project-id"}, []string{"--metric-interval=notaduration"}, "abc123"), args{"bqmetricstest"}, nil, true},
 		{"missing key", setup([]string{"GCP_PROJECT_ID=my-project-id"}, nil, ""), args{"bqmetricstest"}, nil, true},
 	}
 	for _, tt := range tests {
@@ -86,6 +93,42 @@ func TestNewConfig(t *testing.T) {
 				t.Errorf("NewConfig() got = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestNewConfig_configFile(t *testing.T) {
+	f, err := ioutil.TempFile(os.TempDir(), "config_*.json")
+	if err != nil {
+		t.Fatalf("error creating temporary file: %s", err)
+	}
+	defer func() {
+		n := f.Name()
+		_ = f.Close()
+		_ = os.Remove(n)
+	}()
+
+	data := []byte("{\"datadog-api-key\": \"abc123\", \"gcp-project-id\": \"my-project-id\", \"metric-prefix\": \"custom.gcp.bigquery.stats\", \"metric-tags\": \"env:prod,team:my-team\", \"metric-interval\": \"2m\"}")
+	if _, err = f.Write(data); err != nil {
+		t.Fatalf("error when writing test config file: %s", err)
+	}
+
+	os.Args = []string{"./bqmetricstest", "--config-file", f.Name()}
+	want := &Config{
+		DatadogAPIKey:  "abc123",
+		GcpProject:     "my-project-id",
+		MetricPrefix:   "custom.gcp.bigquery.stats",
+		MetricTags:     []string{"env:prod", "team:my-team"},
+		MetricInterval: 2 * time.Minute,
+		Profiling:      false,
+	}
+
+	got, err := NewConfig("bqmetricstest")
+	if err != nil {
+		t.Errorf("NewConfig() error = %v, wantErr false", err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("NewConfig() got = %v, want %v", got, want)
 	}
 }
 
@@ -158,145 +201,6 @@ func TestValidateConfig(t *testing.T) {
 	}
 }
 
-func Test_argsFromCommandLine(t *testing.T) {
-	setup := func(cmd, val string) func() {
-		return func() {
-			if cmd == "" {
-				os.Args = []string{"./bqmetricstest"}
-				return
-			}
-
-			os.Args = []string{"./bqmetricstest", cmd, val}
-		}
-	}
-	type args struct {
-		t string
-	}
-	tests := []struct {
-		name  string
-		setup func()
-		args  args
-		want  arguments
-	}{
-		{"datadog-api-key-file", setup("--datadog-api-key-file", "/tmp/dd.key"), args{"bqmetricstest"}, arguments{datadogAPIKeyFile: "/tmp/dd.key"}},
-		{"datadog-api-key-file empty", setup("", ""), args{"bqmetricstest"}, arguments{datadogAPIKeyFile: ""}},
-		{"datadog-api-key-secret-id", setup("--datadog-api-key-secret-id", "projects/my-project/secrets/datadog-api-key/versions/latest"), args{"bqmetricstest"}, arguments{datadogAPIKeySecretID: "projects/my-project/secrets/datadog-api-key/versions/latest"}},
-		{"datadog-api-key-secret-id empty", setup("", ""), args{"bqmetricstest"}, arguments{datadogAPIKeySecretID: ""}},
-		{"gcp-project-id", setup("--gcp-project-id", "my-project-one"), args{"bqmetricstest"}, arguments{projectID: "my-project-one"}},
-		{"gcp-project-id empty", setup("", ""), args{"bqmetricstest"}, arguments{projectID: ""}},
-		{"metric-prefix", setup("--metric-prefix", "custom.gcp.bigquery.stats"), args{"bqmetricstest"}, arguments{metricPrefix: "custom.gcp.bigquery.stats"}},
-		{"metric-prefix empty", setup("", ""), args{"bqmetricstest"}, arguments{metricPrefix: ""}},
-		{"metric-interval", setup("--metric-interval", "2m"), args{"bqmetricstest"}, arguments{metricInterval: "2m"}},
-		{"metric-interval empty", setup("", ""), args{"bqmetricstest"}, arguments{metricInterval: ""}},
-		{"metric-tags", setup("--metric-tags", "env:prod"), args{"bqmetricstest"}, arguments{metricTags: "env:prod"}},
-		{"metric-tags empty", setup("", ""), args{"bqmetricstest"}, arguments{metricTags: ""}},
-		{"enable-profiling", setup("--enable-profiler", ""), args{"bqmetricstest"}, arguments{profiling: true}},
-		{"enable-profiling empty", setup("", ""), args{"bqmetricstest"}, arguments{profiling: false}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.setup()
-
-			if got := argsFromCommandLine(tt.args.t); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("argsFromCommandLine() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_argsFromEnv(t *testing.T) {
-	setup := func(env, val string) func() {
-		return func() {
-			os.Clearenv()
-			if env == "" {
-				return
-			}
-			err := os.Setenv(env, val)
-			if err != nil {
-				t.Fatalf("could not set test environment: %v", err)
-			}
-		}
-	}
-	tests := []struct {
-		name  string
-		setup func()
-		want  arguments
-	}{
-		{"datadog_api_key", setup("DATADOG_API_KEY", "abc123"), arguments{datadogAPIKey: "abc123"}},
-		{"empty datadog_api_key", setup("", ""), arguments{datadogAPIKey: ""}},
-		{"datadog_api_key_file", setup("DATADOG_API_KEY_FILE", "/tmp/dd.key"), arguments{datadogAPIKeyFile: "/tmp/dd.key"}},
-		{"empty datadog_api_key_file", setup("", ""), arguments{datadogAPIKeyFile: ""}},
-		{"datadog_api_key_secret_id", setup("DATADOG_API_KEY_SECRET_ID", "projects/my-project/secrets/datadog-api-key/versions/latest"), arguments{datadogAPIKeySecretID: "projects/my-project/secrets/datadog-api-key/versions/latest"}},
-		{"empty datadog_api_key_secret_id", setup("", ""), arguments{datadogAPIKeySecretID: ""}},
-		{"gcp_project_id", setup("GCP_PROJECT_ID", "my-project-one"), arguments{projectID: "my-project-one"}},
-		{"empty gcp_project_id", setup("", ""), arguments{projectID: ""}},
-		{"metric_prefix", setup("METRIC_PREFIX", "custom.gcp.bigquery.stats"), arguments{metricPrefix: "custom.gcp.bigquery.stats"}},
-		{"empty metric_prefix", setup("", ""), arguments{metricPrefix: ""}},
-		{"metric_interval", setup("METRIC_INTERVAL", "2m"), arguments{metricInterval: "2m"}},
-		{"empty metric_interval", setup("", ""), arguments{metricInterval: ""}},
-		{"metric_tags", setup("METRIC_TAGS", "env:prod"), arguments{metricTags: "env:prod"}},
-		{"empty metric_tags", setup("", ""), arguments{metricTags: ""}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.setup()
-
-			if got := argsFromEnv(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("argsFromEnv() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_coalesce(t *testing.T) {
-	type args struct {
-		vals []string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{"no params", args{[]string{}}, ""},
-		{"single param", args{[]string{"param1"}}, "param1"},
-		{"two params", args{[]string{"param1", "param2"}}, "param1"},
-		{"empty param", args{[]string{""}}, ""},
-		{"empty param 1", args{[]string{"", "param2"}}, "param2"},
-		{"empty param 2", args{[]string{"param1", "param2"}}, "param1"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := coalesce(tt.args.vals...); got != tt.want {
-				t.Errorf("coalesce() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_parseTagString(t *testing.T) {
-	type args struct {
-		t string
-	}
-	tests := []struct {
-		name string
-		args args
-		want []string
-	}{
-		{"single tag", args{"prod"}, []string{"prod"}},
-		{"kv pair", args{"env:prod"}, []string{"env:prod"}},
-		{"multi single tags", args{"prod,warning"}, []string{"prod", "warning"}},
-		{"multi kv pairs", args{"env:prod,level:warning"}, []string{"env:prod", "level:warning"}},
-		{"tag and kv pair", args{"prod,level:warning"}, []string{"prod", "level:warning"}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := parseTagString(tt.args.t); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("parseTagString() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestGetEnv(t *testing.T) {
 	setup := func(env, val string) func() {
 		return func() {
@@ -332,5 +236,52 @@ func TestGetEnv(t *testing.T) {
 				t.Errorf("GetEnv() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func Test_getDefaultProjectID_missingAuthentication(t *testing.T) {
+	want := ""
+
+	os.Clearenv()
+	_ = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "/tmp/non_existing_credentials.json")
+
+	got, err := getDefaultProjectID()
+	if err == nil {
+		t.Errorf("getDefaultProjectID() error = %v, wantErr %v", err, true)
+		return
+	}
+	if got != want {
+		t.Errorf("getDefaultProjectID() got = %v, want %v", got, want)
+	}
+}
+
+func Test_getDefaultProjectID_presentAuthentication(t *testing.T) {
+	f, err := ioutil.TempFile(os.TempDir(), "config_*.json")
+	if err != nil {
+		t.Fatalf("error creating temporary file: %s", err)
+	}
+	defer func() {
+		n := f.Name()
+		_ = f.Close()
+		_ = os.Remove(n)
+	}()
+
+	data := []byte("{\"type\": \"service_account\", \"project_id\": \"my-project-id\"}")
+	if _, err = f.Write(data); err != nil {
+		t.Fatalf("error when writing test config file: %s", err)
+	}
+
+	os.Clearenv()
+	_ = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", f.Name())
+
+	want := "my-project-id"
+
+	got, err := getDefaultProjectID()
+	if err != nil {
+		t.Errorf("getDefaultProjectID() error = %v, wantErr %v", err, false)
+		return
+	}
+	if got != want {
+		t.Errorf("getDefaultProjectID() got = %v, want %v", got, want)
 	}
 }

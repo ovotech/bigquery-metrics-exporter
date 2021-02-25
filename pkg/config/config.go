@@ -2,8 +2,11 @@ package config
 
 import (
 	"context"
-	"flag"
 	"fmt"
+	"github.com/mitchellh/mapstructure"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 	"golang.org/x/oauth2/google"
 	"io/ioutil"
 	"os"
@@ -12,6 +15,11 @@ import (
 
 	sm "cloud.google.com/go/secretmanager/apiv1"
 	smpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
+)
+
+const (
+	configName = "config"
+	tagName    = "viper"
 )
 
 // DefaultMetricPrefix is the prefix that metric names have by default
@@ -23,79 +31,68 @@ var DefaultMetricInterval = "30s"
 // Version is the version of the program
 var Version = "0.0.0"
 
-// Config contains application configuration details
+// Config holds the configuration for the application
 type Config struct {
-	DatadogAPIKey  string
-	GcpProject     string
-	MetricPrefix   string
-	MetricTags     []string
-	MetricInterval time.Duration
-	Profiling      bool
+	DatadogAPIKey  string        `viper:"datadog-api-key"`
+	GcpProject     string        `viper:"gcp-project-id"`
+	MetricPrefix   string        `viper:"metric-prefix"`
+	MetricTags     []string      `viper:"metric-tags"`
+	MetricInterval time.Duration `viper:"metric-interval"`
+	Profiling      bool          `viper:"enable-profiler"`
 }
 
-// NewConfig returns a Config by merging in the values from environment variables
-// and those presented via command line flags. It will return an error if any of
-// the variables are of an incorrect format or if the created Config is not valid
+// NewConfig creates a config struct using the package viper for configuration
+// construction. Configuration can either be passed in a config file, as flags
+// when running the application, or as environment variables. Priority is as
+// determined by the viper package.
 func NewConfig(name string) (*Config, error) {
-	cnf := &Config{}
-
-	cl := argsFromCommandLine(name)
-	envs := argsFromEnv()
-
+	var cfg Config
 	var err error
 
-	cnf.DatadogAPIKey = envs.datadogAPIKey
-	if cnf.DatadogAPIKey == "" {
-		ddAPIKeyFile := coalesce(cl.datadogAPIKeyFile, envs.datadogAPIKeyFile)
-		if ddAPIKeyFile != "" {
-			cnf.DatadogAPIKey, err = getValueFromFile(ddAPIKeyFile)
-			if err != nil {
-				return nil, fmt.Errorf("error reading datadog API key file: %w", err)
-			}
-		}
-	}
-	if cnf.DatadogAPIKey == "" {
-		ddAPIKeySecretID := coalesce(cl.datadogAPIKeySecretID, envs.datadogAPIKeySecretID)
-		if ddAPIKeySecretID != "" {
-			cnf.DatadogAPIKey, err = getValueFromSecretManager(ddAPIKeySecretID)
-			if err != nil {
-				return nil, fmt.Errorf("error reading datadog secret: %w", err)
-			}
-		}
+	fs := configFlags(name)
+
+	vpr := viper.New()
+
+	vpr.AddConfigPath("/etc/bqmetrics")
+	vpr.AddConfigPath("$HOME/.bqmetrics")
+	vpr.SetConfigName(configName)
+
+	handleEnvBindings(vpr, fs)
+
+	cfgFile, _ := fs.GetString("config-file")
+	if cfgFile != "" {
+		vpr.SetConfigFile(cfgFile)
 	}
 
-	cnf.GcpProject = coalesce(cl.projectID, envs.projectID)
-	if cnf.GcpProject == "" {
-		cnf.GcpProject, err = getDefaultProjectID()
-		if err != nil {
-			return nil, fmt.Errorf("error retrieving default Google project ID: %w", err)
+	if err = vpr.BindPFlags(fs); err != nil {
+		return nil, fmt.Errorf("failed to bind flags: %w", err)
+	}
+
+	if err = vpr.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok || cfgFile != "" {
+			return nil, fmt.Errorf("failed to read in config: %w", err)
 		}
 	}
 
-	cnf.MetricPrefix = coalesce(cl.metricPrefix, envs.metricPrefix, DefaultMetricPrefix)
-	cnf.MetricTags = parseTagString(coalesce(cl.metricTags, envs.metricTags))
-
-	cnf.MetricInterval, err = time.ParseDuration(coalesce(cl.metricInterval, envs.metricInterval, DefaultMetricInterval))
-	if err != nil {
-		return nil, fmt.Errorf("error parsing metric interval: %w", err)
+	if err = handleAliases(vpr, "datadog-api-key"); err != nil {
+		return nil, err
 	}
 
-	cnf.Profiling = cl.profiling
+	if err = vpr.Unmarshal(&cfg, func(cfg *mapstructure.DecoderConfig) {
+		cfg.TagName = tagName
+	}); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
 
-	err = ValidateConfig(cnf)
-	if err != nil {
+	if err = handleFinalDefaults(&cfg); err != nil {
+		return nil, fmt.Errorf("could not handle defaults: %w", err)
+	}
+
+	if err = ValidateConfig(&cfg); err != nil {
 		return nil, fmt.Errorf("error validating config: %w", err)
 	}
 
-	return cnf, nil
-}
-
-// GetEnv will return the value of the environment variable if set, otherwise the default
-func GetEnv(env, def string) string {
-	if val, ok := os.LookupEnv(env); ok {
-		return val
-	}
-	return def
+	return &cfg, nil
 }
 
 // ValidateConfig will validate that all of the required config parameters are present
@@ -117,6 +114,47 @@ func ValidateConfig(c *Config) error {
 	}
 
 	return nil
+}
+
+// GetEnv will return the value of the environment variable if set, otherwise the default
+func GetEnv(env, def string) string {
+	if val, ok := os.LookupEnv(env); ok {
+		return val
+	}
+	return def
+}
+
+func configFlags(name string) *pflag.FlagSet {
+	defInterval, err := time.ParseDuration(DefaultMetricInterval)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to parse default metric interval")
+	}
+
+	flags := pflag.NewFlagSet(name, pflag.ExitOnError)
+	flags.String("config-file", "", "Path to the config file")
+	flags.String("datadog-api-key-file", "", "File containing the Datadog API key")
+	flags.String("datadog-api-key-secret-id", "", "Google Secret Manager Resource ID containing the Datadog API key")
+	flags.String("gcp-project-id", "", "The GCP project to extract BigQuery metrics from")
+	flags.String("metric-prefix", DefaultMetricPrefix, fmt.Sprintf("The prefix for the metrics names exported to Datadog (Default %s)", DefaultMetricPrefix))
+	flags.Duration("metric-interval", defInterval, fmt.Sprintf("The interval between metrics submissions (Default %s)", DefaultMetricInterval))
+	flags.StringSlice("metric-tags", []string{}, "Comma-delimited list of tags to attach to metrics")
+	flags.Bool("enable-profiler", false, "Enables the profiler")
+
+	_ = flags.Parse(os.Args[1:])
+
+	return flags
+}
+
+func getDefaultProjectID() (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	auth, err := google.FindDefaultCredentials(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return auth.ProjectID, nil
 }
 
 func getValueFromFile(path string) (string, error) {
@@ -146,75 +184,44 @@ func getValueFromSecretManager(id string) (string, error) {
 	return string(resp.Payload.GetData()), nil
 }
 
-func getDefaultProjectID() (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	auth, err := google.FindDefaultCredentials(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	return auth.ProjectID, nil
-}
-
-type arguments struct {
-	datadogAPIKey, datadogAPIKeyFile, datadogAPIKeySecretID, projectID, metricPrefix, metricInterval, metricTags string
-	profiling bool
-}
-
-func argsFromEnv() arguments {
-	args := arguments{}
-	do := func(tgt *string, env string) {
-		if val, ok := os.LookupEnv(env); ok {
-			*tgt = val
+func handleAliases(vpr *viper.Viper, target string) error {
+	if path := vpr.GetString(fmt.Sprintf("%s-file", target)); path != "" {
+		val, err := getValueFromFile(path)
+		if err != nil {
+			return fmt.Errorf("failed to handle file alias: %w", err)
 		}
+		vpr.Set(target, val)
 	}
 
-	do(&args.datadogAPIKey, "DATADOG_API_KEY")
-	do(&args.datadogAPIKeyFile, "DATADOG_API_KEY_FILE")
-	do(&args.datadogAPIKeySecretID, "DATADOG_API_KEY_SECRET_ID")
-	do(&args.projectID, "GCP_PROJECT_ID")
-	do(&args.metricPrefix, "METRIC_PREFIX")
-	do(&args.metricTags, "METRIC_TAGS")
-	do(&args.metricInterval, "METRIC_INTERVAL")
-
-	return args
-}
-
-func argsFromCommandLine(name string) arguments {
-	args := arguments{}
-	flags := flag.NewFlagSet(name, flag.ExitOnError)
-	flags.StringVar(&args.datadogAPIKeyFile, "datadog-api-key-file", "", "File containing the Datadog API key")
-	flags.StringVar(&args.datadogAPIKeySecretID, "datadog-api-key-secret-id", "", "Google Secret Manager Resource ID containing the Datadog API key")
-	flags.StringVar(&args.projectID, "gcp-project-id", "", "The GCP project to extract BigQuery metrics from")
-	flags.StringVar(&args.metricPrefix, "metric-prefix", "", fmt.Sprintf("The prefix for the metrics names exported to Datadog (Default %s)", DefaultMetricPrefix))
-	flags.StringVar(&args.metricInterval, "metric-interval", "", fmt.Sprintf("The interval between metrics submissions (Default %s)", DefaultMetricInterval))
-	flags.StringVar(&args.metricTags, "metric-tags", "", "Comma-delimited list of tags to attach to metrics")
-	flags.BoolVar(&args.profiling, "enable-profiler", false, "Enables the profiler")
-
-	_ = flags.Parse(os.Args[1:])
-
-	return args
-}
-
-func coalesce(s ...string) string {
-	for _, val := range s {
-		if val != "" {
-			return val
+	if id := vpr.GetString(fmt.Sprintf("%s-secret-id", target)); id != "" {
+		val, err := getValueFromSecretManager(id)
+		if err != nil {
+			return fmt.Errorf("failed to handle secret manager alias: %w", err)
 		}
+		vpr.Set(target, val)
 	}
-	return ""
+
+	return nil
 }
 
-func parseTagString(t string) []string {
-	var tags []string
+func handleEnvBindings(vpr *viper.Viper, fs *pflag.FlagSet) {
+	// This parameter is not available as a flag so bind it separately
+	_ = vpr.BindEnv("datadog-api-key", "DATADOG_API_KEY")
 
-	for _, tag := range strings.FieldsFunc(t, func(x rune) bool {
-		return x == ',' || x == ' '
-	}) {
-		tags = append(tags, tag)
+	fs.VisitAll(func(f *pflag.Flag) {
+		env := strings.ReplaceAll(f.Name, "-", "_")
+		_ = vpr.BindEnv(f.Name, strings.ToUpper(env))
+	})
+}
+
+func handleFinalDefaults(cfg *Config) error {
+	if cfg.GcpProject == "" {
+		def, err := getDefaultProjectID()
+		if err != nil {
+			return nil
+		}
+		cfg.GcpProject = def
 	}
 
-	return tags
+	return nil
 }
