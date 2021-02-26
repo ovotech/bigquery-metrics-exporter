@@ -362,3 +362,35 @@ func Test_getDefaultProjectID_presentAuthentication(t *testing.T) {
 		t.Errorf("getDefaultProjectID() got = %v, want %v", got, want)
 	}
 }
+
+func TestNormaliseConfig(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  *Config
+		want *Config
+	}{
+		{
+			"no custom metrics",
+			&Config{},
+			&Config{},
+		},
+		{
+			"custom metric missing interval",
+			&Config{MetricInterval: time.Second * 10, CustomMetrics: []CustomMetric{{MetricName: "my-metric"}}},
+			&Config{MetricInterval: time.Second * 10, CustomMetrics: []CustomMetric{{MetricName: "my-metric", MetricInterval: time.Second * 10}}},
+		},
+		{
+			"custom metric with interval",
+			&Config{MetricInterval: time.Second * 5, CustomMetrics: []CustomMetric{{MetricName: "my-metric", MetricInterval: time.Second * 10}}},
+			&Config{MetricInterval: time.Second * 5, CustomMetrics: []CustomMetric{{MetricName: "my-metric", MetricInterval: time.Second * 10}}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			NormaliseConfig(tt.arg)
+			if ! reflect.DeepEqual(tt.want, tt.arg) {
+				t.Errorf("NormaliseConfig() got = %v, want = %v", tt.arg, tt.want)
+			}
+		})
+	}
+}
