@@ -36,21 +36,21 @@ var Version = "0.0.0"
 
 // Config holds the configuration for the application
 type Config struct {
-	DatadogAPIKey  string        `viper:"datadog-api-key"`
-	GcpProject     string        `viper:"gcp-project-id"`
-	MetricPrefix   string        `viper:"metric-prefix"`
-	MetricTags     []string      `viper:"metric-tags"`
-	MetricInterval time.Duration `viper:"metric-interval"`
+	DatadogAPIKey  string         `viper:"datadog-api-key"`
+	GcpProject     string         `viper:"gcp-project-id"`
+	MetricPrefix   string         `viper:"metric-prefix"`
+	MetricTags     []string       `viper:"metric-tags"`
+	MetricInterval time.Duration  `viper:"metric-interval"`
 	CustomMetrics  []CustomMetric `viper:"custom-metrics"`
-	Profiling      bool          `viper:"enable-profiler"`
+	Profiling      bool           `viper:"enable-profiler"`
 }
 
 // CustomMetric holds details about a metric generated from an SQL query
 type CustomMetric struct {
-	MetricName string `viper:"metric-name"`
-	MetricTags []string `viper:"metric-tags"`
+	MetricName     string        `viper:"metric-name"`
+	MetricTags     []string      `viper:"metric-tags"`
 	MetricInterval time.Duration `viper:"metric-interval"`
-	Sql string `viper:"sql"`
+	SQL            string        `viper:"sql"`
 }
 
 // NewConfig creates a config struct using the package viper for configuration
@@ -270,8 +270,8 @@ func validateCustomMetric(cm CustomMetric) error {
 		return ErrMissingMetricName
 	}
 
-	if cm.Sql == "" {
-		return ErrMissingCustomMetricSql
+	if cm.SQL == "" {
+		return ErrMissingCustomMetricSQL
 	}
 
 	return nil

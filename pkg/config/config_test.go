@@ -156,11 +156,11 @@ func TestNewConfig_configFileWithCustomQueries(t *testing.T) {
 		MetricTags:     []string{"env:prod", "team:my-team"},
 		MetricInterval: 2 * time.Minute,
 		Profiling:      false,
-		CustomMetrics:  []CustomMetric{{
-			MetricName: "my_metric",
-			MetricTags: []string{"table_id:table"},
+		CustomMetrics: []CustomMetric{{
+			MetricName:     "my_metric",
+			MetricTags:     []string{"table_id:table"},
 			MetricInterval: 2 * time.Minute,
-			Sql: "SELECT COUNT(DISTINCT *) FROM `table`",
+			SQL:            "SELECT COUNT(DISTINCT *) FROM `table`",
 		}},
 	}
 
@@ -239,11 +239,11 @@ func TestValidateConfig(t *testing.T) {
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: time.Duration(30000),
-			CustomMetrics:  []CustomMetric{{
+			CustomMetrics: []CustomMetric{{
 				MetricName:     "my_custom_metric",
 				MetricTags:     []string{"table_id:my-table"},
 				MetricInterval: time.Duration(36000000),
-				Sql:            "SELECT COUNT(DISTINCT `my-column`) FROM `my-dataset.my-table`",
+				SQL:            "SELECT COUNT(DISTINCT `my-column`) FROM `my-dataset.my-table`",
 			}},
 		}}, false},
 		{"custom metrics missing name", args{&Config{
@@ -252,9 +252,9 @@ func TestValidateConfig(t *testing.T) {
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: time.Duration(30000),
-			CustomMetrics:  []CustomMetric{{
+			CustomMetrics: []CustomMetric{{
 				MetricInterval: time.Duration(36000000),
-				Sql:			"SELECT COUNT(DISTINCT `my-column`) FROM `my-dataset.my-table`",
+				SQL:            "SELECT COUNT(DISTINCT `my-column`) FROM `my-dataset.my-table`",
 			}},
 		}}, true},
 		{"custom metrics missing sql", args{&Config{
@@ -263,7 +263,7 @@ func TestValidateConfig(t *testing.T) {
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: time.Duration(30000),
-			CustomMetrics:  []CustomMetric{{
+			CustomMetrics: []CustomMetric{{
 				MetricName:     "my_custom_metric",
 				MetricInterval: time.Duration(36000000),
 			}},

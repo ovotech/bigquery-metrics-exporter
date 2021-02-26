@@ -54,9 +54,8 @@ func NewReadingFrom(val interface{}, at time.Time) (Reading, error) {
 	case bool:
 		if val {
 			return Reading{Timestamp: at, Value: 1.0}, nil
-		} else {
-			return Reading{Timestamp: at, Value: 0.0}, nil
 		}
+		return Reading{Timestamp: at, Value: 0.0}, nil
 	case time.Time:
 		return Reading{Timestamp: at, Value: float64(val.Unix())}, nil
 	case int:

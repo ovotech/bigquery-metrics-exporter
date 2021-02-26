@@ -18,6 +18,6 @@ var (
 	// ErrMissingMetricName is the error returned when a CustomMetric is missing a metric name
 	ErrMissingMetricName = errors.New("no metric name configured")
 
-	// ErrMissingCustomMetricSql is the error returned when a CustomMetric is missing Sql
-	ErrMissingCustomMetricSql = errors.New("no custom metric sql query configured")
+	// ErrMissingCustomMetricSQL is the error returned when a CustomMetric is missing SQL
+	ErrMissingCustomMetricSQL = errors.New("no custom metric sql query configured")
 )
