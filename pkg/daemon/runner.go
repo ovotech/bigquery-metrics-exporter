@@ -130,7 +130,7 @@ func (d *Runner) RunUntil(ctx context.Context) error {
 			case <-ctx.Done():
 				logger.Info().Msg("Received end signal, performing final metric publishing")
 
-				finalCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				finalCtx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
 				err := d.consumer.PublishTo(finalCtx, d.publisher)
 				cancel()
 				if err != nil {
