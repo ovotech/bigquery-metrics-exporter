@@ -19,6 +19,17 @@ The following metrics are generated:
 Inserting or modifying data in the table also updates the last modified time,
 so those metrics can be used as a measure of data freshness.
 
+## Custom Metrics
+The metrics exporter also includes the ability to generate Datadog metrics from
+the results of SQL queries.
+
+:warning: *Running an SQL query on BigQuery may have a cost associated with it*
+
+Each custom metric has a name, a list of tags, and its own collection interval
+as well as the SQL query to run to produce the metrics. The SQL query should
+return a single row of data, and each column will be exported as a distinct
+metric.
+
 ## Recommended usage
 It is recommended to run the metrics collection daemon `bqmetricsd` which will
 continually collect metrics and ship them to Datadog according to the provided
