@@ -388,7 +388,7 @@ func TestNormaliseConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			NormaliseConfig(tt.arg)
-			if ! reflect.DeepEqual(tt.want, tt.arg) {
+			if !reflect.DeepEqual(tt.want, tt.arg) {
 				t.Errorf("NormaliseConfig() got = %v, want = %v", tt.arg, tt.want)
 			}
 		})
