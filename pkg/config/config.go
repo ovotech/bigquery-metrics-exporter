@@ -109,7 +109,6 @@ func NewConfig(name string) (*Config, error) {
 }
 
 // NormaliseConfig will apply rules to normalise the config, specifically
-// * CustomMetric tags have the default tags appended
 // * CustomMetric interval is set to the default interval if missing
 func NormaliseConfig(c *Config) {
 	if len(c.CustomMetrics) == 0 {
@@ -120,8 +119,6 @@ func NormaliseConfig(c *Config) {
 		if c.CustomMetrics[i].MetricInterval == time.Duration(0) {
 			c.CustomMetrics[i].MetricInterval = c.MetricInterval
 		}
-
-		c.CustomMetrics[i].MetricTags = append(c.MetricTags, c.CustomMetrics[i].MetricTags...)
 	}
 }
 

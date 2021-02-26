@@ -158,7 +158,7 @@ func TestNewConfig_configFileWithCustomQueries(t *testing.T) {
 		Profiling:      false,
 		CustomMetrics:  []CustomMetric{{
 			MetricName: "my_metric",
-			MetricTags: []string{"env:prod", "team:my-team", "table_id:table"},
+			MetricTags: []string{"table_id:table"},
 			MetricInterval: 2 * time.Minute,
 			Sql: "SELECT COUNT(DISTINCT *) FROM `table`",
 		}},
