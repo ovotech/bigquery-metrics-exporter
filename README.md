@@ -88,7 +88,7 @@ line options.
 | GOOGLE_APPLICATION_CREDENTIALS | | File containing service account details to authenticate to Google Cloud using |
 | LOG_LEVEL | | The logging level (e.g. trace, debug, info, warn, error). Defaults to *info* |
 | METRIC_INTERVAL | --metric-interval | The interval between metric collection rounds. Must contain a unit and valid units are "ns", "us" (or "µs"), "ms", "s", "m", "h". Defaults to *30s* |
-| METRIC_PREFIX | --metric-prefix | The prefix for the metric names exported to Datadog. Defaults to *custom.gcp.bigquery.table* |
+| METRIC_PREFIX | --metric-prefix | The prefix for the metric names exported to Datadog. Defaults to *custom.gcp.bigquery* |
 | METRIC_TAGS | --metric-tags | Comma-delimited list of tags to attach to metrics (e.g. env:prod,team:myteam) |
 
 ### GCP Service Account permissions

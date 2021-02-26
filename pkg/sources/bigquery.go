@@ -72,9 +72,9 @@ func (g Generator) outputTableLevelMetrics(ctx context.Context, t *bigquery.Tabl
 		fmt.Sprintf("project_id:%s", t.ProjectID),
 	}
 	now := time.Now().Unix()
-	out <- g.producer.Produce("row_count", metrics.NewReading(float64(meta.NumRows)), tags)
-	out <- g.producer.Produce("last_modified_time", metrics.NewReading(float64(meta.LastModifiedTime.Unix())), tags)
-	out <- g.producer.Produce("last_modified", metrics.NewReading(float64(now)-float64(meta.LastModifiedTime.Unix())), tags)
+	out <- g.producer.Produce("table.row_count", metrics.NewReading(float64(meta.NumRows)), tags)
+	out <- g.producer.Produce("table.last_modified_time", metrics.NewReading(float64(meta.LastModifiedTime.Unix())), tags)
+	out <- g.producer.Produce("table.last_modified", metrics.NewReading(float64(now)-float64(meta.LastModifiedTime.Unix())), tags)
 }
 
 func iterateDatasets(ctx context.Context, client *bigquery.Client) chan *bigquery.Dataset {

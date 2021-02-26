@@ -26,7 +26,7 @@ const (
 var AppName = "bqmetrics"
 
 // DefaultMetricPrefix is the prefix that metric names have by default
-var DefaultMetricPrefix = "custom.gcp.bigquery.table"
+var DefaultMetricPrefix = "custom.gcp.bigquery"
 
 // DefaultMetricInterval is the default period between table-level metric exports
 var DefaultMetricInterval = "30s"

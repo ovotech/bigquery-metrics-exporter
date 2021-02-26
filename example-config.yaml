@@ -23,9 +23,9 @@
 
 ###
 # The prefix for the metric name, so that all metrics are grouped and easily
-# identifiable in the Datadog interface. Defaults to custom.gcp.bigquery.table
+# identifiable in the Datadog interface. Defaults to custom.gcp.bigquery
 #
-# metric-prefix: my-team.bigquery.table-metrics
+# metric-prefix: my-team.bigquery.metrics
 
 ###
 # An array of tags to publish with the metrics data
