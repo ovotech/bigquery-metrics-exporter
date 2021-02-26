@@ -66,11 +66,11 @@ func (d *Runner) RunOnce(ctx context.Context) error {
 func (d *Runner) RunUntil(ctx context.Context) error {
 	log.Info().Msg("Starting Runner")
 
+	var abort context.CancelFunc
+	ctx, abort = context.WithCancel(ctx)
+
 	receiver := d.consumer.Run()
 	defer close(receiver)
-
-	var abort chan struct{}
-	abort = make(chan struct{})
 
 	var problem chan error
 	problem = make(chan error, 1)
@@ -97,9 +97,6 @@ func (d *Runner) RunUntil(ctx context.Context) error {
 			case <-ctx.Done():
 				logger.Info().Msg("Received end signal, finishing metric production")
 				return
-			case <-abort:
-				logger.Info().Msg("Received abort signal, finishing metric production")
-				return
 			}
 		}
 	}()
@@ -124,7 +121,7 @@ func (d *Runner) RunUntil(ctx context.Context) error {
 						Msg("Unrecoverable error occurred when publishing, finishing metric production goroutine. Metric data will be lost")
 
 					problem <- err
-					close(abort)
+					abort()
 					return
 				}
 			case <-ctx.Done():
