@@ -9,10 +9,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const cmdName = "bqmetrics"
-
 func main() {
-	cfg, err := config.NewConfig(fmt.Sprintf("%s (Version %s)", cmdName, config.Version))
+	cfg, err := config.NewConfig(fmt.Sprintf("%s (Version %s)", config.AppName, config.Version))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to parse config")
 	}

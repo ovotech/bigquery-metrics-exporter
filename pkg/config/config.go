@@ -22,6 +22,9 @@ const (
 	tagName    = "viper"
 )
 
+// AppName is the name of the application
+var AppName = "bqmetrics"
+
 // DefaultMetricPrefix is the prefix that metric names have by default
 var DefaultMetricPrefix = "custom.gcp.bigquery.table"
 

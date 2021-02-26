@@ -8,6 +8,7 @@ builds:
     binary: bqmetrics
     ldflags:
       - -s -w
+      - -X github.com/ovotech/bigquery-metrics-extractor/pkg/config.AppName=bqmetrics
       - -X github.com/ovotech/bigquery-metrics-extractor/pkg/config.Version={{.Version}}
     env:
       - CGO_ENABLED=0
@@ -22,6 +23,7 @@ builds:
     binary: bqmetricsd
     ldflags:
       - -s -w
+      - -X github.com/ovotech/bigquery-metrics-extractor/pkg/config.AppName=bqmetricsd
       - -X github.com/ovotech/bigquery-metrics-extractor/pkg/config.Version={{.Version}}
     env:
       - CGO_ENABLED=0
