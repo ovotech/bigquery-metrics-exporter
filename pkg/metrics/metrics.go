@@ -48,6 +48,46 @@ func NewReading(val float64) Reading {
 	}
 }
 
+// NewReadingFrom creates a new reading from an interface type if possible
+func NewReadingFrom(val interface{}, at time.Time) (Reading, error) {
+	switch val := val.(type) {
+	case bool:
+		if val {
+			return Reading{Timestamp: at, Value: 1.0}, nil
+		} else {
+			return Reading{Timestamp: at, Value: 0.0}, nil
+		}
+	case time.Time:
+		return Reading{Timestamp: at, Value: float64(val.Unix())}, nil
+	case int:
+		return Reading{Timestamp: at, Value: float64(val)}, nil
+	case int8:
+		return Reading{Timestamp: at, Value: float64(val)}, nil
+	case int16:
+		return Reading{Timestamp: at, Value: float64(val)}, nil
+	case int32:
+		return Reading{Timestamp: at, Value: float64(val)}, nil
+	case int64:
+		return Reading{Timestamp: at, Value: float64(val)}, nil
+	case uint:
+		return Reading{Timestamp: at, Value: float64(val)}, nil
+	case uint8:
+		return Reading{Timestamp: at, Value: float64(val)}, nil
+	case uint16:
+		return Reading{Timestamp: at, Value: float64(val)}, nil
+	case uint32:
+		return Reading{Timestamp: at, Value: float64(val)}, nil
+	case uint64:
+		return Reading{Timestamp: at, Value: float64(val)}, nil
+	case float32:
+		return Reading{Timestamp: at, Value: float64(val)}, nil
+	case float64:
+		return Reading{Timestamp: at, Value: val}, nil
+	}
+
+	return Reading{}, ErrInvalidReadingType
+}
+
 func (r Reading) serialize() []float64 {
 	return []float64{float64(r.Timestamp.Unix()), r.Value}
 }

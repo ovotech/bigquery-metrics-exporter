@@ -421,3 +421,47 @@ func TestConsumer_PublishTo_RecoverableFailureKeepsMetrics(t *testing.T) {
 		t.Errorf("len(c.metrics) = %v, want %v", len(c.metrics), 1)
 	}
 }
+
+func TestNewReadingFrom(t *testing.T) {
+	now := time.Now()
+	type args struct {
+		val interface{}
+		at  time.Time
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    Reading
+		wantErr bool
+	}{
+		{"float64", args{float64(10), now}, Reading{Value: 10.0, Timestamp: now}, false},
+		{"float32", args{float32(10), now}, Reading{Value: 10.0, Timestamp: now}, false},
+		{"int64", args{int64(10), now}, Reading{Value: 10.0, Timestamp: now}, false},
+		{"int32", args{int32(10), now}, Reading{Value: 10.0, Timestamp: now}, false},
+		{"int16", args{int16(10), now}, Reading{Value: 10.0, Timestamp: now}, false},
+		{"int8", args{int8(10), now}, Reading{Value: 10.0, Timestamp: now}, false},
+		{"int", args{int(10), now}, Reading{Value: 10.0, Timestamp: now}, false},
+		{"uint64", args{uint64(10), now}, Reading{Value: 10.0, Timestamp: now}, false},
+		{"uint32", args{uint32(10), now}, Reading{Value: 10.0, Timestamp: now}, false},
+		{"uint16", args{uint16(10), now}, Reading{Value: 10.0, Timestamp: now}, false},
+		{"uint8", args{uint8(10), now}, Reading{Value: 10.0, Timestamp: now}, false},
+		{"uint", args{uint(10), now}, Reading{Value: 10.0, Timestamp: now}, false},
+		{"true", args{true, now}, Reading{Value: 1.0, Timestamp: now}, false},
+		{"false", args{false, now}, Reading{Value: 0.0, Timestamp: now}, false},
+		{"time", args{time.Unix(10, 0), now}, Reading{Value: 10.0, Timestamp: now}, false},
+		{"string", args{"10", now}, Reading{}, true},
+		{"bytes", args{[]byte("10"), now}, Reading{}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewReadingFrom(tt.args.val, tt.args.at)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewReadingFrom() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewReadingFrom() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
