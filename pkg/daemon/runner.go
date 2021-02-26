@@ -53,6 +53,16 @@ func (d *Runner) RunOnce(ctx context.Context) error {
 	receiver := d.consumer.Run()
 	defer close(receiver)
 
+	wg := sync.WaitGroup{}
+	wg.Add(len(d.cfg.CustomMetrics))
+	for _, m := range d.cfg.CustomMetrics {
+		go func(cm config.CustomMetric) {
+			d.generator.ProduceCustomMetric(ctx, cm, receiver)
+			wg.Done()
+		}(m)
+	}
+	wg.Wait()
+
 	d.generator.ProduceMetrics(ctx, receiver)
 	err := d.consumer.PublishTo(ctx, d.publisher)
 
