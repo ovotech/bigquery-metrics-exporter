@@ -14,6 +14,7 @@ import (
 // Generator defines something that is able to output *metrics.Metric into a channel
 type Generator interface {
 	ProduceMetrics(context.Context, chan *metrics.Metric)
+	ProduceCustomMetric(context.Context, config.CustomMetric, chan *metrics.Metric)
 }
 
 // Publisher defines something that is able to publish a slice of metrics.Metric
@@ -52,6 +53,16 @@ func (d *Runner) RunOnce(ctx context.Context) error {
 	receiver := d.consumer.Run()
 	defer close(receiver)
 
+	wg := sync.WaitGroup{}
+	wg.Add(len(d.cfg.CustomMetrics))
+	for _, m := range d.cfg.CustomMetrics {
+		go func(cm config.CustomMetric) {
+			d.generator.ProduceCustomMetric(ctx, cm, receiver)
+			wg.Done()
+		}(m)
+	}
+	wg.Wait()
+
 	d.generator.ProduceMetrics(ctx, receiver)
 	err := d.consumer.PublishTo(ctx, d.publisher)
 
@@ -66,83 +77,23 @@ func (d *Runner) RunOnce(ctx context.Context) error {
 func (d *Runner) RunUntil(ctx context.Context) error {
 	log.Info().Msg("Starting Runner")
 
+	var abort context.CancelFunc
+	ctx, abort = context.WithCancel(ctx)
+
 	receiver := d.consumer.Run()
 	defer close(receiver)
-
-	var abort chan struct{}
-	abort = make(chan struct{})
 
 	var problem chan error
 	problem = make(chan error, 1)
 
 	wg := sync.WaitGroup{}
-	wg.Add(2)
+	wg.Add(2 + len(d.cfg.CustomMetrics))
 
-	go func() {
-		logger := log.With().
-			Str("component", "Generator").
-			Str("metric_interval", d.cfg.MetricInterval.String()).
-			Str("metric_prefix", d.cfg.MetricPrefix).
-			Logger()
-		logger.Info().Msg("Starting metric production")
-
-		ticker := time.NewTicker(d.cfg.MetricInterval)
-		defer ticker.Stop()
-		defer wg.Done()
-
-		for {
-			select {
-			case <-ticker.C:
-				d.generator.ProduceMetrics(ctx, receiver)
-			case <-ctx.Done():
-				logger.Info().Msg("Received end signal, finishing metric production")
-				return
-			case <-abort:
-				logger.Info().Msg("Received abort signal, finishing metric production")
-				return
-			}
-		}
-	}()
-	go func() {
-		logger := log.With().
-			Str("component", "Publisher").
-			Str("metric_interval", d.cfg.MetricInterval.String()).
-			Str("metric_prefix", d.cfg.MetricPrefix).
-			Logger()
-		logger.Info().Msg("Starting metric publishing")
-
-		ticker := time.NewTicker(d.cfg.MetricInterval)
-		defer ticker.Stop()
-		defer wg.Done()
-
-		for {
-			select {
-			case <-ticker.C:
-				err := d.consumer.PublishTo(ctx, d.publisher)
-				if metrics.IsUnrecoverable(err) {
-					logger.Err(err).
-						Msg("Unrecoverable error occurred when publishing, finishing metric production goroutine. Metric data will be lost")
-
-					problem <- err
-					close(abort)
-					return
-				}
-			case <-ctx.Done():
-				logger.Info().Msg("Received end signal, performing final metric publishing")
-
-				finalCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				err := d.consumer.PublishTo(finalCtx, d.publisher)
-				cancel()
-				if err != nil {
-					logger.Err(err).
-						Msg("Error during final metric publishing. Metric data will be lost")
-
-					problem <- err
-				}
-				return
-			}
-		}
-	}()
+	go d.startMetricPublisher(ctx, abort, &wg, problem)
+	go d.startTableMetricsGenerator(ctx, &wg, receiver)
+	for _, cm := range d.cfg.CustomMetrics {
+		go d.startCustomMetricsGenerator(ctx, cm, &wg, receiver)
+	}
 
 	wg.Wait()
 
@@ -155,5 +106,93 @@ func (d *Runner) RunUntil(ctx context.Context) error {
 		log.Info().Msg("Finishing Runner")
 
 		return nil
+	}
+}
+
+func (d *Runner) startMetricPublisher(ctx context.Context, abort context.CancelFunc, wg *sync.WaitGroup, problem chan error) {
+	logger := log.With().
+		Str("component", "Publisher").
+		Str("metric_interval", d.cfg.MetricInterval.String()).
+		Str("metric_prefix", d.cfg.MetricPrefix).
+		Logger()
+	logger.Info().Msg("Starting metric publishing")
+
+	ticker := time.NewTicker(d.cfg.MetricInterval)
+	defer ticker.Stop()
+	defer wg.Done()
+
+	for {
+		select {
+		case <-ticker.C:
+			err := d.consumer.PublishTo(ctx, d.publisher)
+			if metrics.IsUnrecoverable(err) {
+				logger.Err(err).
+					Msg("Unrecoverable error occurred when publishing, finishing metric production goroutine. Metric data will be lost")
+
+				problem <- err
+				abort()
+				return
+			}
+		case <-ctx.Done():
+			logger.Info().Msg("Received end signal, performing final metric publishing")
+
+			finalCtx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
+			err := d.consumer.PublishTo(finalCtx, d.publisher)
+			cancel()
+			if err != nil {
+				logger.Err(err).
+					Msg("Error during final metric publishing. Metric data will be lost")
+
+				problem <- err
+			}
+			return
+		}
+	}
+}
+
+func (d *Runner) startCustomMetricsGenerator(ctx context.Context, cm config.CustomMetric, wg *sync.WaitGroup, receiver chan *metrics.Metric) {
+	logger := log.With().
+		Str("component", "Custom Generator").
+		Str("metric_interval", cm.MetricInterval.String()).
+		Str("metric_name", cm.MetricName).
+		Str("metric_prefix", d.cfg.MetricPrefix).
+		Logger()
+	logger.Info().Msg("Starting custom metric production")
+
+	ticker := time.NewTicker(cm.MetricInterval)
+	defer ticker.Stop()
+	defer wg.Done()
+
+	for {
+		select {
+		case <-ticker.C:
+			d.generator.ProduceCustomMetric(ctx, cm, receiver)
+		case <-ctx.Done():
+			logger.Info().Msg("Received end signal, finishing metric production")
+			return
+		}
+	}
+}
+
+func (d *Runner) startTableMetricsGenerator(ctx context.Context, wg *sync.WaitGroup, receiver chan *metrics.Metric) {
+	logger := log.With().
+		Str("component", "Generator").
+		Str("metric_interval", d.cfg.MetricInterval.String()).
+		Str("metric_prefix", d.cfg.MetricPrefix).
+		Logger()
+	logger.Info().Msg("Starting table metric production")
+
+	ticker := time.NewTicker(d.cfg.MetricInterval)
+	defer ticker.Stop()
+	defer wg.Done()
+
+	for {
+		select {
+		case <-ticker.C:
+			d.generator.ProduceMetrics(ctx, receiver)
+		case <-ctx.Done():
+			logger.Info().Msg("Received end signal, finishing metric production")
+			return
+		}
 	}
 }

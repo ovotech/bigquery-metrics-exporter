@@ -19,6 +19,17 @@ The following metrics are generated:
 Inserting or modifying data in the table also updates the last modified time,
 so those metrics can be used as a measure of data freshness.
 
+## Custom Metrics
+The metrics exporter also includes the ability to generate Datadog metrics from
+the results of SQL queries.
+
+:warning: *Running an SQL query on BigQuery may have a cost associated with it*
+
+Each custom metric has a name, a list of tags, and its own collection interval
+as well as the SQL query to run to produce the metrics. The SQL query should
+return a single row of data, and each column will be exported as a distinct
+metric.
+
 ## Recommended usage
 It is recommended to run the metrics collection daemon `bqmetricsd` which will
 continually collect metrics and ship them to Datadog according to the provided
@@ -88,7 +99,7 @@ line options.
 | GOOGLE_APPLICATION_CREDENTIALS | | File containing service account details to authenticate to Google Cloud using |
 | LOG_LEVEL | | The logging level (e.g. trace, debug, info, warn, error). Defaults to *info* |
 | METRIC_INTERVAL | --metric-interval | The interval between metric collection rounds. Must contain a unit and valid units are "ns", "us" (or "µs"), "ms", "s", "m", "h". Defaults to *30s* |
-| METRIC_PREFIX | --metric-prefix | The prefix for the metric names exported to Datadog. Defaults to *custom.gcp.bigquery.table* |
+| METRIC_PREFIX | --metric-prefix | The prefix for the metric names exported to Datadog. Defaults to *custom.gcp.bigquery* |
 | METRIC_TAGS | --metric-tags | Comma-delimited list of tags to attach to metrics (e.g. env:prod,team:myteam) |
 
 ### GCP Service Account permissions

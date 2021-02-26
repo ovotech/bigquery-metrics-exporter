@@ -23,6 +23,13 @@ func (m mockGenerator) ProduceMetrics(_ context.Context, c chan *metrics.Metric)
 	}
 }
 
+func (m mockGenerator) ProduceCustomMetric(_ context.Context, _ config.CustomMetric, c chan *metrics.Metric) {
+	for _, res := range m.results {
+		res := res
+		c <- &res
+	}
+}
+
 type mockPublisher struct {
 	expected []metrics.Metric
 	err      error

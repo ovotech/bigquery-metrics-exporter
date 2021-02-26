@@ -132,6 +132,48 @@ func TestNewConfig_configFile(t *testing.T) {
 	}
 }
 
+func TestNewConfig_configFileWithCustomQueries(t *testing.T) {
+	f, err := ioutil.TempFile(os.TempDir(), "config_*.json")
+	if err != nil {
+		t.Fatalf("error creating temporary file: %s", err)
+	}
+	defer func() {
+		n := f.Name()
+		_ = f.Close()
+		_ = os.Remove(n)
+	}()
+
+	data := []byte("{\"datadog-api-key\": \"abc123\", \"gcp-project-id\": \"my-project-id\", \"metric-prefix\": \"custom.gcp.bigquery.stats\", \"metric-tags\": \"env:prod,team:my-team\", \"metric-interval\": \"2m\", \"custom-metrics\": [{\"metric-name\": \"my_metric\", \"metric-tags\": [\"table_id:table\"], \"sql\": \"SELECT COUNT(DISTINCT *) FROM `table`\"}]}")
+	if _, err = f.Write(data); err != nil {
+		t.Fatalf("error when writing test config file: %s", err)
+	}
+
+	os.Args = []string{"./bqmetricstest", "--config-file", f.Name()}
+	want := &Config{
+		DatadogAPIKey:  "abc123",
+		GcpProject:     "my-project-id",
+		MetricPrefix:   "custom.gcp.bigquery.stats",
+		MetricTags:     []string{"env:prod", "team:my-team"},
+		MetricInterval: 2 * time.Minute,
+		Profiling:      false,
+		CustomMetrics: []CustomMetric{{
+			MetricName:     "my_metric",
+			MetricTags:     []string{"table_id:table"},
+			MetricInterval: 2 * time.Minute,
+			SQL:            "SELECT COUNT(DISTINCT *) FROM `table`",
+		}},
+	}
+
+	got, err := NewConfig("bqmetricstest")
+	if err != nil {
+		t.Errorf("NewConfig() error = %v, wantErr false", err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("NewConfig() got = %v, want %v", got, want)
+	}
+}
+
 func TestValidateConfig(t *testing.T) {
 	type args struct {
 		c *Config
@@ -191,6 +233,41 @@ func TestValidateConfig(t *testing.T) {
 			MetricInterval: time.Duration(30000),
 			Profiling:      false,
 		}}, false},
+		{"custom metrics okay", args{&Config{
+			DatadogAPIKey:  "abc123",
+			GcpProject:     "my-project-id",
+			MetricPrefix:   "custom.gcp.bigquery.stats",
+			MetricTags:     []string{"env:prod"},
+			MetricInterval: time.Duration(30000),
+			CustomMetrics: []CustomMetric{{
+				MetricName:     "my_custom_metric",
+				MetricTags:     []string{"table_id:my-table"},
+				MetricInterval: time.Duration(36000000),
+				SQL:            "SELECT COUNT(DISTINCT `my-column`) FROM `my-dataset.my-table`",
+			}},
+		}}, false},
+		{"custom metrics missing name", args{&Config{
+			DatadogAPIKey:  "abc123",
+			GcpProject:     "my-project-id",
+			MetricPrefix:   "custom.gcp.bigquery.stats",
+			MetricTags:     []string{"env:prod"},
+			MetricInterval: time.Duration(30000),
+			CustomMetrics: []CustomMetric{{
+				MetricInterval: time.Duration(36000000),
+				SQL:            "SELECT COUNT(DISTINCT `my-column`) FROM `my-dataset.my-table`",
+			}},
+		}}, true},
+		{"custom metrics missing sql", args{&Config{
+			DatadogAPIKey:  "abc123",
+			GcpProject:     "my-project-id",
+			MetricPrefix:   "custom.gcp.bigquery.stats",
+			MetricTags:     []string{"env:prod"},
+			MetricInterval: time.Duration(30000),
+			CustomMetrics: []CustomMetric{{
+				MetricName:     "my_custom_metric",
+				MetricInterval: time.Duration(36000000),
+			}},
+		}}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -283,5 +360,37 @@ func Test_getDefaultProjectID_presentAuthentication(t *testing.T) {
 	}
 	if got != want {
 		t.Errorf("getDefaultProjectID() got = %v, want %v", got, want)
+	}
+}
+
+func TestNormaliseConfig(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  *Config
+		want *Config
+	}{
+		{
+			"no custom metrics",
+			&Config{},
+			&Config{},
+		},
+		{
+			"custom metric missing interval",
+			&Config{MetricInterval: time.Second * 10, CustomMetrics: []CustomMetric{{MetricName: "my-metric"}}},
+			&Config{MetricInterval: time.Second * 10, CustomMetrics: []CustomMetric{{MetricName: "my-metric", MetricInterval: time.Second * 10}}},
+		},
+		{
+			"custom metric with interval",
+			&Config{MetricInterval: time.Second * 5, CustomMetrics: []CustomMetric{{MetricName: "my-metric", MetricInterval: time.Second * 10}}},
+			&Config{MetricInterval: time.Second * 5, CustomMetrics: []CustomMetric{{MetricName: "my-metric", MetricInterval: time.Second * 10}}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			NormaliseConfig(tt.arg)
+			if !reflect.DeepEqual(tt.want, tt.arg) {
+				t.Errorf("NormaliseConfig() got = %v, want = %v", tt.arg, tt.want)
+			}
+		})
 	}
 }

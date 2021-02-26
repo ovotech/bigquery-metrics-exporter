@@ -47,6 +47,74 @@ func (g Generator) ProduceMetrics(ctx context.Context, receiver chan *metrics.Me
 	wg.Wait()
 }
 
+// ProduceCustomMetric will generate a metric based on a CustomMetric
+func (g Generator) ProduceCustomMetric(ctx context.Context, cm config.CustomMetric, out chan *metrics.Metric) {
+	logger := log.With().
+		Str("metric-name", cm.MetricName).
+		Str("sql", cm.SQL).
+		Logger()
+
+	logger.Debug().Msg("Producing custom metric")
+
+	iter, err := g.runSQLQuery(ctx, cm.SQL)
+	if err != nil {
+		logger.Err(err).Msg("Error occurred reading custom query")
+		return
+	}
+
+	now := time.Now()
+
+	var results map[string]bigquery.Value
+	err = iter.Next(&results)
+	if err != nil {
+		if err == iterator.Done {
+			logger.Info().Msg("Query returned no results")
+			return
+		}
+
+		logger.Err(err).Msg("Query results iterator produced an error")
+		return
+	}
+
+	if iter.TotalRows > 1 {
+		logger.Warn().Msg("Query returned multiple rows but only the first row is used")
+	}
+
+	for colName, colVal := range results {
+		reading, err := metrics.NewReadingFrom(colVal, now)
+		if err != nil {
+			logger.Err(err).
+				Str("column_id", colName).
+				Msg("Query results must be of numeric type")
+			continue
+		}
+		tags := append(
+			[]string{fmt.Sprintf("column_id:%s", colName)},
+			cm.MetricTags...,
+		)
+
+		out <- g.producer.Produce(fmt.Sprintf("custom_metric.%s", cm.MetricName), reading, tags)
+	}
+}
+
+func (g Generator) runSQLQuery(ctx context.Context, sql string) (*bigquery.RowIterator, error) {
+	q := g.client.Query(sql)
+	q.Labels = make(map[string]string)
+	q.Labels["created-by"] = config.AppName
+
+	job, err := q.Run(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error running query: %w", err)
+	}
+
+	iter, err := job.Read(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error reading query results: %w", err)
+	}
+
+	return iter, nil
+}
+
 func (g Generator) outputTableLevelMetrics(ctx context.Context, t *bigquery.Table, out chan *metrics.Metric, wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -72,9 +140,9 @@ func (g Generator) outputTableLevelMetrics(ctx context.Context, t *bigquery.Tabl
 		fmt.Sprintf("project_id:%s", t.ProjectID),
 	}
 	now := time.Now().Unix()
-	out <- g.producer.Produce("row_count", metrics.NewReading(float64(meta.NumRows)), tags)
-	out <- g.producer.Produce("last_modified_time", metrics.NewReading(float64(meta.LastModifiedTime.Unix())), tags)
-	out <- g.producer.Produce("last_modified", metrics.NewReading(float64(now)-float64(meta.LastModifiedTime.Unix())), tags)
+	out <- g.producer.Produce("table.row_count", metrics.NewReading(float64(meta.NumRows)), tags)
+	out <- g.producer.Produce("table.last_modified_time", metrics.NewReading(float64(meta.LastModifiedTime.Unix())), tags)
+	out <- g.producer.Produce("table.last_modified", metrics.NewReading(float64(now)-float64(meta.LastModifiedTime.Unix())), tags)
 }
 
 func iterateDatasets(ctx context.Context, client *bigquery.Client) chan *bigquery.Dataset {

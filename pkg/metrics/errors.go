@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -10,6 +11,9 @@ const (
 	unrecoverableError submissionErrorType = iota
 	recoverableError
 )
+
+// ErrInvalidReadingType is an error when attempting to creating a Reading from a non-numeric type
+var ErrInvalidReadingType = errors.New("unable to create Reading from given type")
 
 // SubmissionError is returned when an error is encountered publishing metrics
 type SubmissionError struct {

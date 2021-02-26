@@ -14,4 +14,10 @@ var (
 
 	// ErrMissingMetricInterval is the error returned when the Config is missing a metric collection interval
 	ErrMissingMetricInterval = errors.New("no metric collection interval configured")
+
+	// ErrMissingMetricName is the error returned when a CustomMetric is missing a metric name
+	ErrMissingMetricName = errors.New("no metric name configured")
+
+	// ErrMissingCustomMetricSQL is the error returned when a CustomMetric is missing SQL
+	ErrMissingCustomMetricSQL = errors.New("no custom metric sql query configured")
 )
