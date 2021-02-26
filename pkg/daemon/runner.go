@@ -14,6 +14,7 @@ import (
 // Generator defines something that is able to output *metrics.Metric into a channel
 type Generator interface {
 	ProduceMetrics(context.Context, chan *metrics.Metric)
+	ProduceCustomMetric(context.Context, config.CustomMetric, chan *metrics.Metric)
 }
 
 // Publisher defines something that is able to publish a slice of metrics.Metric
