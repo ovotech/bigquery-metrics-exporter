@@ -11,6 +11,10 @@ module "container" {
   container = {
     image = "${var.image-repository}:${var.image-tag}"
     args  = ["--config-file=${local.config_path}"]
+    env = [{
+      name  = "LOG_LEVEL"
+      value = var.log-level
+    }]
     volumeMounts = [{
       mountPath = local.config_path
       name      = "config"
