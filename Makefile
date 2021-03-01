@@ -1,7 +1,7 @@
 MODULE := $(shell go list -m)
 PACKAGES := $(shell go list ./...)
 GOLINT := $(shell go list -f {{.Target}} golang.org/x/lint/golint)
-GORELEASER := $(shell brew --prefix goreleaser)/bin/goreleaser
+GORELEASER := bin/goreleaser
 VERSION := $(shell git describe --tags --exact-match 2>/dev/null || git log -1 --pretty='%h')
 
 all: test
@@ -12,7 +12,7 @@ ${GOLINT}:
 	go get -u golang.org/x/lint/golint
 
 ${GORELEASER}:
-	brew install goreleaser/tap/goreleaser
+	curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh
 
 bin/%: cmd/% $(shell find pkg -name '*.go')
 	go build -ldflags "-X ${MODULE}/pkg/config.Version=${VERSION}" -o $@ ${MODULE}/$<
