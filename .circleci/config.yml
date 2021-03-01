@@ -33,6 +33,7 @@ jobs:
       - image: circleci/golang:1.15
     steps:
       - checkout
+      - setup_remote_docker
       - run: make build
 
 workflows:
