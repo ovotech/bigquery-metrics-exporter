@@ -39,3 +39,19 @@ resource "google_secret_manager_secret_iam_member" "secret-role" {
   secret_id = var.datadog-api-key-secret
   project   = local.project
 }
+
+resource "google_project_iam_member" "bq-data-reader-role" {
+  count = local.create-service-account && local.allow-bigquery-jobs ? 1 : 0
+
+  member  = "serviceAccount:${google_service_account.bqmetricsd.0.email}"
+  role    = "roles/bigquery.dataViewer"
+  project = local.project
+}
+
+resource "google_project_iam_member" "bq-user-role" {
+  count = local.create-service-account && local.allow-bigquery-jobs ? 1 : 0
+
+  member  = "serviceAccount:${google_service_account.bqmetricsd.0.email}"
+  role    = "roles/bigquery.jobUser"
+  project = local.project
+}

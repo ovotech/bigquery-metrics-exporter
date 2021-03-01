@@ -4,6 +4,21 @@ variable "bigquery-project-id" {
   default     = ""
 }
 
+variable "custom-metrics" {
+  type        = any
+  description = <<-EOT
+  List of custom metric stanzas. Type is given as any as there are a number of optional components.
+  Expected type is below:
+  type = list(object({
+    metric-name     = string
+    metric-interval = optional(string)
+    metric-tags     = optional(list(string))
+    sql             = string
+  }))
+  EOT
+  default     = []
+}
+
 variable "datadog-api-key-secret" {
   type        = string
   description = "Name of the secret containing the Datadog API key stored in Google Secret Manager"
@@ -33,10 +48,16 @@ variable "metric-interval" {
   default     = "30s"
 }
 
+variable "metric-prefix" {
+  type        = string
+  description = "Optionally the prefix to give to metrics"
+  default     = ""
+}
+
 variable "metric-tags" {
-  type        = map(string)
+  type        = list(string)
   description = "The tags to attach on metrics"
-  default     = {}
+  default     = []
 }
 
 variable "network-tags" {
@@ -100,9 +121,10 @@ resource "random_shuffle" "zones" {
 }
 
 locals {
+  allow-bigquery-jobs    = length(var.custom-metrics) > 0
   bigquery-project       = coalesce(var.bigquery-project-id, local.project)
+  config_path            = "/etc/bqmetrics/config.json"
   create-service-account = var.service-account-email == ""
-  metric-tags            = join(",", sort([for k, v in var.metric-tags : (v == "" ? k : "${k}:${v}")]))
   project                = coalesce(var.project, data.google_client_config.current.project)
   region                 = coalesce(var.region, data.google_client_config.current.region)
   service-account-email  = local.create-service-account ? google_service_account.bqmetricsd.0.email : var.service-account-email
