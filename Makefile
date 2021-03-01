@@ -30,6 +30,6 @@ lint: ${GOLINT}
 	${GOLINT} --set_exit_status ${PACKAGES}
 
 test:
-	go test ${PACKAGES}
+	go test --race ${PACKAGES}
 
 .PHONY: all build clean fmt lint push test
