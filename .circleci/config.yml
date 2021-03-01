@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  terraform: ovotech/terraform@1
+
 jobs:
   release:
     docker:
@@ -36,6 +39,20 @@ jobs:
       - setup_remote_docker
       - run: make build
 
+  tf-check:
+    executor: terraform/terraform-0_12
+    steps:
+      - checkout
+      - terraform/fmt-check:
+          path: terraform/gcp
+
+  tf-validate:
+    executor: terraform/terraform-0_12
+    steps:
+      - checkout
+      - terraform/validate:
+          path: terraform/gcp
+
 workflows:
   release:
     jobs:
@@ -51,3 +68,5 @@ workflows:
       - go-test
       - go-lint
       - go-build
+      - tf-check
+      - tf-validate
