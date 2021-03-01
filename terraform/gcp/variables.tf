@@ -121,6 +121,7 @@ resource "random_shuffle" "zones" {
 }
 
 locals {
+  allow-bigquery-jobs    = length(var.custom-metrics) > 0
   bigquery-project       = coalesce(var.bigquery-project-id, local.project)
   config_path            = "/etc/bqmetrics/config.json"
   create-service-account = var.service-account-email == ""
