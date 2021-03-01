@@ -46,14 +46,11 @@ changelog:
       - '^docs:'
       - '^test:'
 dockers:
-  - binaries:
-      - bqmetrics
-      - bqmetricsd
-    builds:
-      - bqmetrics
-      - bqmetricsd
+  - goarch: amd64
     goos: linux
-    goarch: amd64
+    ids:
+      - bqmetrics
+      - bqmetricsd
     image_templates:
       - "ovotech/{{ .ProjectName }}:latest"
       - "ovotech/{{ .ProjectName }}:{{ .Tag }}"
