@@ -105,8 +105,14 @@ line options.
 ### GCP Service Account permissions
 The service account running `bqmetricsd` may require the following roles:
 ```
+BigQuery Data Viewer
+    Required to generate custom metrics that need access to table data
+    This permission can be granted directly on the datasets in question 
 BigQuery Metadata Viewer
     Required to generate table level metrics
+BigQuery User
+    Required to generate custom metrics
 Secret Manager Secret Accessor
     Required to access the Datadog API key if stored in Secret Manager
+    This permission can be granted directly on the secret in question
 ```
