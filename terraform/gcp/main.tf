@@ -46,6 +46,8 @@ resource "google_compute_instance_template" "bqmetricsd" {
     var.stackdriver-logging ? { google-logging-enabled = "true" } : {},
   )
 
+  metadata_startup_script = data.template_file.startup.rendered
+
   service_account {
     email  = local.service-account-email
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
@@ -76,5 +78,25 @@ resource "google_compute_instance_group_manager" "bqmetricsd" {
   version {
     name              = "bqmetricsd"
     instance_template = google_compute_instance_template.bqmetricsd.id
+  }
+}
+
+locals {
+  config_init = {
+    custom-metrics            = var.custom-metrics
+    datadog-api-key-secret-id = data.google_secret_manager_secret_version.datadog-api-key.id
+    gcp-project-id            = local.bigquery-project
+    metric-interval           = var.metric-interval
+    metric-prefix             = var.metric-prefix
+    metric-tags               = var.metric-tags
+  }
+  config = { for k, v in local.config_init : k => v if v != "" }
+}
+
+data "template_file" "startup" {
+  template = file("${path.module}/templates/startup.sh")
+  vars = {
+    config_content = base64encode(jsonencode(local.config))
+    config_path    = local.config_path
   }
 }
