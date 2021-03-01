@@ -29,7 +29,7 @@ resource "google_service_account" "custom" {
 # Give the service account permissions to get BigQuery table-level metrics
 resource "google_project_iam_member" "bigquery-access" {
   member = "serviceAccount:${google_service_account.custom.email}"
-  role    = "roles/bigquery.metadataViewer"
+  role   = "roles/bigquery.metadataViewer"
 }
 
 # Give the service account permissions to read the Datadog API key
