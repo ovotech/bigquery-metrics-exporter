@@ -53,6 +53,15 @@ jobs:
       - terraform/validate:
           path: terraform/gcp
 
+  tf-publish:
+    executor: terraform/terraform-0_12
+    steps:
+      - checkout
+      - terraform/publish-module:
+          path: terraform/gcp
+          module_name: pe/bigquery-metrics-exporter/gcp
+          version_file_path: terraform/gcp/module_version.txt
+
 workflows:
   release:
     jobs:
@@ -62,6 +71,9 @@ workflows:
               ignore: /.*/
             tags:
               only: /v[0-9]+(\.[0-9]+)*(-.*)*/
+      - tf-publish:
+          requires:
+            - release
 
   quality-checks:
     jobs:
