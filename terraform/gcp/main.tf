@@ -10,13 +10,21 @@ module "container" {
 
   container = {
     image = "${var.image-repository}:${var.image-tag}"
-    args = [
-      "--datadog-api-key-secret-id=${data.google_secret_manager_secret_version.datadog-api-key.id}",
-      "--gcp-project-id=${local.bigquery-project}",
-      "--metric-interval=${var.metric-interval}",
-      "--metric-tags=${local.metric-tags}",
-    ]
+    args  = ["--config-file=${local.config_path}"]
+    volumeMounts = [{
+      mountPath = local.config_path
+      name      = "config"
+      readOnly  = true
+    }]
   }
+
+  volumes = [{
+    name = "config"
+    hostPath = {
+      path = local.config_path
+    }
+  }]
+
   restart_policy = "Always"
 }
 
