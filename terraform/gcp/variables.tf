@@ -36,6 +36,12 @@ variable "image-tag" {
   default     = "latest"
 }
 
+variable "log-level" {
+  type        = string
+  description = "The log level of bqmetricsd. Should be one of debug, info, warn, error"
+  default     = "info"
+}
+
 variable "machine-type" {
   type        = string
   description = "The type of the instance to run bqmetrics service on"
