@@ -297,6 +297,8 @@ func TestConsumer_Run(t *testing.T) {
 
 	receiver <- &Metric{Metric: "row_count", Points: [][]float64{{1600, 1}}}
 
+	c.mx.Lock()
+	defer c.mx.Unlock()
 	if len(c.metrics) != 1 {
 		t.Errorf("len(c.metrics) = %v, want %v", len(c.metrics), 1)
 	}
