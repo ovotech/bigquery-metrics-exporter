@@ -16,7 +16,7 @@ resource "google_project_iam_member" "bq-role" {
 }
 
 resource "google_project_iam_member" "logger-role" {
-  count = local.create-service-account ? 1 : 0
+  count = local.create-service-account && var.stackdriver-logging ? 1 : 0
 
   member  = "serviceAccount:${google_service_account.bqmetricsd.0.email}"
   role    = "roles/logging.logWriter"
@@ -24,7 +24,7 @@ resource "google_project_iam_member" "logger-role" {
 }
 
 resource "google_project_iam_member" "metric-role" {
-  count = local.create-service-account ? 1 : 0
+  count = local.create-service-account && var.stackdriver-monitoring ? 1 : 0
 
   member  = "serviceAccount:${google_service_account.bqmetricsd.0.email}"
   role    = "roles/monitoring.metricWriter"
