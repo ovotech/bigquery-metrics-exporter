@@ -1,10 +1,18 @@
 version: 2.1
 
+.aliases:
+  - &on-release
+    filters:
+      branches:
+        ignore: /.*/
+      tags:
+        only: /v[0-9]+(\.[0-9]+)*(-.*)*/
+
 orbs:
   terraform: ovotech/terraform@1
 
 jobs:
-  release:
+  go-release:
     docker:
       - image: circleci/golang:1.15
     steps:
@@ -65,15 +73,10 @@ jobs:
 workflows:
   release:
     jobs:
-      - release:
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /v[0-9]+(\.[0-9]+)*(-.*)*/
+      - go-release:
+          <<: *on-release
       - tf-publish:
-          requires:
-            - release
+          <<: *on-release
 
   quality-checks:
     jobs:
