@@ -27,7 +27,7 @@ variable "datadog-api-key-secret" {
 variable "image-repository" {
   type        = string
   description = "The repository where the image is stored"
-  default     = "ovotech/bigquery-metrics-extractor"
+  default     = "ovotech/bigquery-metrics-exporter"
 }
 
 variable "image-tag" {

@@ -18,7 +18,7 @@ Manager
 Optional
 
 The repository where the image is stored. Defaults to 
-"ovotech/bigquery-metrics-extractor"
+"ovotech/bigquery-metrics-exporter"
 
 #### image-tag (string)
 Optional
