@@ -132,6 +132,30 @@ func TestNewConfig_configFile(t *testing.T) {
 	}
 }
 
+func TestNewConfig_configFile_invalidFormat(t *testing.T) {
+	f, err := ioutil.TempFile(os.TempDir(), "config_*.dat")
+	if err != nil {
+		t.Fatalf("error creating temporary file: %s", err)
+	}
+	defer func() {
+		n := f.Name()
+		_ = f.Close()
+		_ = os.Remove(n)
+	}()
+
+	data := []byte("{\"datadog-api-key\": \"abc123\"}")
+	if _, err = f.Write(data); err != nil {
+		t.Fatalf("error when writing test config file: %s", err)
+	}
+
+	os.Args = []string{"./bqmetricstest", "--config-file", f.Name()}
+
+	_, err = NewConfig("bqmetricstest")
+	if err == nil {
+		t.Errorf("NewConfig() error = %v, wantErr true", err)
+	}
+}
+
 func TestNewConfig_configFileWithCustomQueries(t *testing.T) {
 	f, err := ioutil.TempFile(os.TempDir(), "config_*.json")
 	if err != nil {
