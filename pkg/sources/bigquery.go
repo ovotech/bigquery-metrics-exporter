@@ -4,6 +4,7 @@ import (
 	"cloud.google.com/go/bigquery"
 	"context"
 	"fmt"
+	bq "github.com/googleapis/google-cloud-go-testing/bigquery/bqiface"
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/config"
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/metrics"
 	"github.com/rs/zerolog/log"
@@ -15,7 +16,7 @@ import (
 // Generator can generate metrics from BigQuery tables
 type Generator struct {
 	cfg      *config.Config
-	client   *bigquery.Client
+	client   bq.Client
 	producer metrics.Producer
 }
 
@@ -28,7 +29,7 @@ func NewGenerator(ctx context.Context, cfg *config.Config) (*Generator, error) {
 
 	return &Generator{
 		cfg:      cfg,
-		client:   client,
+		client:   bq.AdaptClient(client),
 		producer: metrics.NewProducer(cfg),
 	}, nil
 }
@@ -76,7 +77,7 @@ func (g Generator) ProduceCustomMetric(ctx context.Context, cm config.CustomMetr
 		return
 	}
 
-	if iter.TotalRows > 1 {
+	if iter.TotalRows() > 1 {
 		logger.Warn().Msg("Query returned multiple rows but only the first row is used")
 	}
 
@@ -97,10 +98,15 @@ func (g Generator) ProduceCustomMetric(ctx context.Context, cm config.CustomMetr
 	}
 }
 
-func (g Generator) runSQLQuery(ctx context.Context, sql string) (*bigquery.RowIterator, error) {
+func (g Generator) runSQLQuery(ctx context.Context, sql string) (bq.RowIterator, error) {
 	q := g.client.Query(sql)
-	q.Labels = make(map[string]string)
-	q.Labels["created-by"] = config.AppName
+
+	cfg := bq.QueryConfig{}
+	cfg.Q = sql
+	cfg.Labels = make(map[string]string)
+	cfg.Labels["created-by"] = config.AppName
+
+	q.SetQueryConfig(cfg)
 
 	job, err := q.Run(ctx)
 	if err != nil {
@@ -115,15 +121,15 @@ func (g Generator) runSQLQuery(ctx context.Context, sql string) (*bigquery.RowIt
 	return iter, nil
 }
 
-func (g Generator) outputTableLevelMetrics(ctx context.Context, t *bigquery.Table, out chan *metrics.Metric, wg *sync.WaitGroup) {
+func (g Generator) outputTableLevelMetrics(ctx context.Context, t bq.Table, out chan *metrics.Metric, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	meta, err := t.Metadata(ctx)
 	if err != nil {
 		log.Err(err).
-			Str("project_id", t.ProjectID).
-			Str("dataset_id", t.DatasetID).
-			Str("table_id", t.TableID).
+			Str("project_id", t.ProjectID()).
+			Str("dataset_id", t.DatasetID()).
+			Str("table_id", t.TableID()).
 			Msg("An error occurred when fetching table metadata")
 
 		return
@@ -135,9 +141,9 @@ func (g Generator) outputTableLevelMetrics(ctx context.Context, t *bigquery.Tabl
 	}
 
 	tags := []string{
-		fmt.Sprintf("dataset_id:%s", t.DatasetID),
-		fmt.Sprintf("table_id:%s", t.TableID),
-		fmt.Sprintf("project_id:%s", t.ProjectID),
+		fmt.Sprintf("dataset_id:%s", t.DatasetID()),
+		fmt.Sprintf("table_id:%s", t.TableID()),
+		fmt.Sprintf("project_id:%s", t.ProjectID()),
 	}
 	now := time.Now().Unix()
 	out <- g.producer.Produce("table.row_count", metrics.NewReading(float64(meta.NumRows)), tags)
@@ -145,9 +151,9 @@ func (g Generator) outputTableLevelMetrics(ctx context.Context, t *bigquery.Tabl
 	out <- g.producer.Produce("table.last_modified", metrics.NewReading(float64(now)-float64(meta.LastModifiedTime.Unix())), tags)
 }
 
-func iterateDatasets(ctx context.Context, client *bigquery.Client) chan *bigquery.Dataset {
-	var out chan *bigquery.Dataset
-	out = make(chan *bigquery.Dataset)
+func iterateDatasets(ctx context.Context, client bq.Client) chan bq.Dataset {
+	var out chan bq.Dataset
+	out = make(chan bq.Dataset)
 
 	go func() {
 		defer close(out)
@@ -173,9 +179,9 @@ func iterateDatasets(ctx context.Context, client *bigquery.Client) chan *bigquer
 	return out
 }
 
-func iterateTables(ctx context.Context, ds *bigquery.Dataset) chan *bigquery.Table {
-	var out chan *bigquery.Table
-	out = make(chan *bigquery.Table)
+func iterateTables(ctx context.Context, ds bq.Dataset) chan bq.Table {
+	var out chan bq.Table
+	out = make(chan bq.Table)
 
 	go func() {
 		defer close(out)
@@ -189,8 +195,8 @@ func iterateTables(ctx context.Context, ds *bigquery.Dataset) chan *bigquery.Tab
 				}
 
 				log.Err(err).
-					Str("project_id", ds.ProjectID).
-					Str("dataset_id", ds.DatasetID).
+					Str("project_id", ds.ProjectID()).
+					Str("dataset_id", ds.DatasetID()).
 					Msg("An error occurred when fetching table information")
 
 				break
