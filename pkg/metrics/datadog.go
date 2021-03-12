@@ -17,7 +17,7 @@ type httpClient interface {
 
 // DatadogPublisher publishes slices of Metric to Datadog
 type DatadogPublisher struct {
-	cfg *config.Config
+	cfg    *config.Config
 	client httpClient
 }
 

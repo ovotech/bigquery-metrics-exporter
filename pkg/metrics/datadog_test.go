@@ -10,11 +10,11 @@ import (
 	"testing"
 )
 
-type mockHttpClient struct {
+type mockHTTPClient struct {
 	doFunc func(req *http.Request) (*http.Response, error)
 }
 
-func (m *mockHttpClient) Do(req *http.Request) (*http.Response, error) {
+func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	return m.doFunc(req)
 }
 
@@ -23,10 +23,10 @@ func TestDatadogPublisher_PublishMetricsSet(t *testing.T) {
 	metrics := []Metric{
 		{
 			Interval: 60,
-			Metric: "value",
-			Points: [][]float64{{1.0, 1.0}, {2.0, 1.0}},
-			Tags: []string{"env:nonprod"},
-			Type: TypeGauge,
+			Metric:   "value",
+			Points:   [][]float64{{1.0, 1.0}, {2.0, 1.0}},
+			Tags:     []string{"env:nonprod"},
+			Type:     TypeGauge,
 		},
 	}
 
@@ -66,7 +66,7 @@ func TestDatadogPublisher_PublishMetricsSet(t *testing.T) {
 		{
 			"API Key sent on request",
 			testRequest(func(t *testing.T, req *http.Request) {
-				if ! strings.Contains(req.URL.String(), apiKey) {
+				if !strings.Contains(req.URL.String(), apiKey) {
 					t.Errorf("Request URL %s did not contain API key %s", req.URL.String(), apiKey)
 				}
 			}),
@@ -102,7 +102,7 @@ func TestDatadogPublisher_PublishMetricsSet(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			dp := &DatadogPublisher{
 				cfg:    &config.Config{DatadogAPIKey: apiKey},
-				client: &mockHttpClient{tt.dofunc(t)},
+				client: &mockHTTPClient{tt.dofunc(t)},
 			}
 			err := dp.PublishMetricsSet(context.TODO(), tt.args.metrics)
 			if err != tt.wantErr {

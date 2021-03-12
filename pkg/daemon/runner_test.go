@@ -197,7 +197,7 @@ func Test_runner_RunUntil(t *testing.T) {
 					{Metric: "custom", Points: [][]float64{{1608114736, 500}}},
 				}},
 			},
-			args : args{ctx(context.WithTimeout(context.Background(), time.Millisecond*200))},
+			args:    args{ctx(context.WithTimeout(context.Background(), time.Millisecond*200))},
 			wantErr: false,
 		},
 	}

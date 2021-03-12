@@ -425,7 +425,7 @@ func TestNormaliseConfig(t *testing.T) {
 
 type mockSecretManagerClient struct {
 	payload []byte
-	err  	error
+	err     error
 }
 
 func (m mockSecretManagerClient) AccessSecretVersion(_ context.Context, req *smpb.AccessSecretVersionRequest, _ ...gax.CallOption) (*smpb.AccessSecretVersionResponse, error) {
