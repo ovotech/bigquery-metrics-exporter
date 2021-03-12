@@ -11,14 +11,19 @@ import (
 	"net/http"
 )
 
+type httpClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 // DatadogPublisher publishes slices of Metric to Datadog
 type DatadogPublisher struct {
 	cfg *config.Config
+	client httpClient
 }
 
 // NewDatadogPublisher returns a new DatadogPublisher
 func NewDatadogPublisher(cfg *config.Config) *DatadogPublisher {
-	return &DatadogPublisher{cfg: cfg}
+	return &DatadogPublisher{cfg: cfg, client: http.DefaultClient}
 }
 
 // PublishMetricsSet takes a list of metrics and publishes them to Datadog
@@ -43,7 +48,7 @@ func (dp *DatadogPublisher) PublishMetricsSet(ctx context.Context, metrics []Met
 		return NewUnrecoverableError(err)
 	}
 
-	resp, err := http.DefaultClient.Do(request)
+	resp, err := dp.client.Do(request)
 	if err != nil {
 		return NewRecoverableError(err)
 	}
