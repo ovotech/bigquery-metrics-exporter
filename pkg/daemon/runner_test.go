@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/config"
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/metrics"
+	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -216,11 +217,23 @@ func Test_runner_RunUntil(t *testing.T) {
 }
 
 func TestNewRunner(t *testing.T) {
-	// Skip this test in CI because BigQuery client cannot be set up without
-	// any default credentials present
-	if os.Getenv("CI") != "" {
-		return
+	f, err := ioutil.TempFile(os.TempDir(), "config_*.json")
+	if err != nil {
+		t.Fatalf("error creating temporary file: %s", err)
 	}
+	defer func() {
+		n := f.Name()
+		_ = f.Close()
+		_ = os.Remove(n)
+	}()
+
+	data := []byte("{\"type\": \"service_account\", \"project_id\": \"my-project-id\"}")
+	if _, err = f.Write(data); err != nil {
+		t.Fatalf("error when writing test config file: %s", err)
+	}
+
+	os.Clearenv()
+	_ = os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", f.Name())
 
 	got, err := NewRunner(context.TODO(), &config.Config{})
 	if err != nil {
