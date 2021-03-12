@@ -14,6 +14,7 @@ var ErrUnexpectedMetricsPublished = errors.New("unexpected metrics")
 
 type mockGenerator struct {
 	results []metrics.Metric
+	custom  []metrics.Metric
 }
 
 func (m mockGenerator) ProduceMetrics(_ context.Context, c chan *metrics.Metric) {
@@ -24,7 +25,7 @@ func (m mockGenerator) ProduceMetrics(_ context.Context, c chan *metrics.Metric)
 }
 
 func (m mockGenerator) ProduceCustomMetric(_ context.Context, _ config.CustomMetric, c chan *metrics.Metric) {
-	for _, res := range m.results {
+	for _, res := range m.custom {
 		res := res
 		c <- &res
 	}
@@ -175,6 +176,28 @@ func Test_runner_RunUntil(t *testing.T) {
 			args:    args{ctx(context.WithTimeout(context.Background(), time.Millisecond*200))},
 			wantErr: false,
 		},
+		{
+			name: "custom metrics",
+			fields: fields{
+				cfg: &config.Config{
+					MetricInterval: time.Millisecond * 50,
+					CustomMetrics: []config.CustomMetric{{
+						MetricInterval: time.Millisecond * 50,
+					}},
+				},
+				consumer: metrics.NewConsumer(),
+				generator: mockGenerator{
+					results: []metrics.Metric{{Metric: "row_count", Points: [][]float64{{1608114735, 1}}}},
+					custom:  []metrics.Metric{{Metric: "custom", Points: [][]float64{{1608114736, 500}}}},
+				},
+				publisher: mockPublisher{expected: []metrics.Metric{
+					{Metric: "row_count", Points: [][]float64{{1608114735, 1}}},
+					{Metric: "custom", Points: [][]float64{{1608114736, 500}}},
+				}},
+			},
+			args : args{ctx(context.WithTimeout(context.Background(), time.Millisecond*200))},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -188,5 +211,22 @@ func Test_runner_RunUntil(t *testing.T) {
 				t.Errorf("RunUntil() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestNewRunner(t *testing.T) {
+	got, err := NewRunner(context.TODO(), &config.Config{})
+	if err != nil {
+		t.Errorf("NewRunner() error = %v, want %v", err, nil)
+		return
+	}
+	if !reflect.DeepEqual(got.cfg, &config.Config{}) {
+		t.Errorf("NewRunner() got.cfg = %+v, want %+v", got.cfg, &config.Config{})
+	}
+	if !reflect.DeepEqual(got.consumer, metrics.NewConsumer()) {
+		t.Errorf("NewRunner() got.consumer = %+v, want %+v", got.consumer, metrics.NewConsumer())
+	}
+	if !reflect.DeepEqual(got.publisher, metrics.NewDatadogPublisher(&config.Config{})) {
+		t.Errorf("NewRunner() got.publisher = %+v, want %+v", got.publisher, metrics.NewDatadogPublisher(&config.Config{}))
 	}
 }
