@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/config"
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/metrics"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -215,6 +216,12 @@ func Test_runner_RunUntil(t *testing.T) {
 }
 
 func TestNewRunner(t *testing.T) {
+	// Skip this test in CI because BigQuery client cannot be set up without
+	// any default credentials present
+	if os.Getenv("CI") != "" {
+		return
+	}
+
 	got, err := NewRunner(context.TODO(), &config.Config{})
 	if err != nil {
 		t.Errorf("NewRunner() error = %v, want %v", err, nil)
