@@ -1,6 +1,10 @@
 package config
 
 import (
+	"context"
+	"errors"
+	"github.com/googleapis/gax-go/v2"
+	smpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -414,6 +418,60 @@ func TestNormaliseConfig(t *testing.T) {
 			NormaliseConfig(tt.arg)
 			if !reflect.DeepEqual(tt.want, tt.arg) {
 				t.Errorf("NormaliseConfig() got = %v, want = %v", tt.arg, tt.want)
+			}
+		})
+	}
+}
+
+type mockSecretManagerClient struct {
+	payload []byte
+	err  	error
+}
+
+func (m mockSecretManagerClient) AccessSecretVersion(_ context.Context, req *smpb.AccessSecretVersionRequest, _ ...gax.CallOption) (*smpb.AccessSecretVersionResponse, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+
+	return &smpb.AccessSecretVersionResponse{
+		Name:    req.Name,
+		Payload: &smpb.SecretPayload{Data: m.payload},
+	}, nil
+}
+
+func Test_getValueFromSecretManager(t *testing.T) {
+	type args struct {
+		id     string
+		client secretManagerClient
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			"secret exists",
+			args{id: "123", client: mockSecretManagerClient{[]byte("my-secret-value"), nil}},
+			"my-secret-value",
+			false,
+		},
+		{
+			"secret doesnt exist",
+			args{id: "456", client: mockSecretManagerClient{nil, errors.New("secret not found")}},
+			"",
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getValueFromSecretManager(tt.args.id, tt.args.client)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getValueFromSecretManager() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("getValueFromSecretManager() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
