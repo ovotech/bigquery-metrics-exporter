@@ -185,11 +185,18 @@ func NewConsumer() *Consumer {
 }
 
 // Run will run the consumer, returning a channel to feed metrics into
-func (c *Consumer) Run() chan *Metric {
+func (c *Consumer) Run(ctx context.Context, wg *sync.WaitGroup) chan *Metric {
 	log.Debug().Msg("Starting metric consumer")
 
 	receiver := make(chan *Metric)
 	go func() {
+		<- ctx.Done()
+		close(receiver)
+	}()
+
+	go func() {
+		defer wg.Done()
+
 		for metric := range receiver {
 			c.consume(metric)
 		}
