@@ -158,7 +158,9 @@ func iterateDatasets(ctx context.Context, client bq.Client, filter string) chan 
 	go func() {
 		defer close(out)
 		iter := client.Datasets(ctx)
-		iter.SetFilter(filter)
+		if filter != "" {
+			iter.SetFilter(fmt.Sprintf("labels.%s", filter))
+		}
 
 		for {
 			ds, err := iter.Next()
