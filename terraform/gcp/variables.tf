@@ -24,6 +24,12 @@ variable "datadog-api-key-secret" {
   description = "Name of the secret containing the Datadog API key stored in Google Secret Manager"
 }
 
+variable "dataset-filter" {
+  type        = string
+  description = "A label to filter BigQuery datasets by when querying for table metrics"
+  default     = ""
+}
+
 variable "image-repository" {
   type        = string
   description = "The repository where the image is stored"
