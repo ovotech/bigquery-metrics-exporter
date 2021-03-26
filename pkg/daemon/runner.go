@@ -103,16 +103,10 @@ func (d *Runner) RunUntil(ctx context.Context) error {
 
 	wg.Wait()
 
-	select {
-	case err := <-problem:
-		log.Err(err).Msg("Finishing Runner")
-
-		return err
-	default:
-		log.Info().Msg("Finishing Runner")
-
-		return nil
-	}
+	close(problem)
+	err := <- problem
+	log.Err(err).Msg("Finishing Runner")
+	return err
 }
 
 func (d *Runner) startMetricPublisher(ctx context.Context, abort context.CancelFunc, wg *sync.WaitGroup, problem chan error) {
