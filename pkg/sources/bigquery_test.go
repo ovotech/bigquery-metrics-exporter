@@ -198,6 +198,7 @@ func TestGenerator_produceCustomMetrics(t *testing.T) {
 
 	collector := make(chan *metrics.Metric, 1)
 	g.ProduceCustomMetric(context.TODO(), cm, collector)
+	close(collector)
 
 	got := <-collector
 	want := &metrics.Metric{
@@ -205,6 +206,74 @@ func TestGenerator_produceCustomMetrics(t *testing.T) {
 		Metric:   "custom_metric.row_count",
 		Points:   [][]float64{{float64(time.Now().Unix()), 100.0}},
 		Tags:     []string{"column_id:count", "table_id:my-view"},
+		Type:     metrics.TypeGauge,
+	}
+	if !compareMetrics(want, got) {
+		t.Errorf("ProduceCustomMetric() got = %v, want = %v", got, want)
+	}
+}
+
+func TestGenerator_produceCustomMetrics_noMetricsWhenNoResults(t *testing.T) {
+	g := Generator{
+		cfg:      &config.Config{},
+		client:   mockClient{},
+		producer: metrics.NewProducer(&config.Config{}),
+	}
+
+	cm := config.CustomMetric{
+		MetricName:     "row_count",
+		MetricTags:     []string{"table_id:my-view"},
+		MetricInterval: time.Second * 3600,
+		SQL:            "SELECT COUNT(*) AS `count` FROM `my-view` WHERE 1 = 0",
+	}
+
+	collector := make(chan *metrics.Metric, 100)
+	g.ProduceCustomMetric(context.TODO(), cm, collector)
+	close(collector)
+
+	got := make([]*metrics.Metric, 0)
+	for met := range collector {
+		got = append(got, met)
+	}
+
+	want := 0
+	if len(got) != want {
+		t.Errorf("ProduceCustomMetric() got len = %v, want len = %v", got, want)
+	}
+}
+
+func TestGenerator_produceCustomMetrics_produceMetricsWhenZeroResult(t *testing.T) {
+	g := Generator{
+		cfg: &config.Config{},
+		client: mockClient{
+			query: &mockQuery{
+				job: &mockJob{
+					rows: &mockRowIterator{
+						rows: []map[string]bigquery.Value{{"count": 0}},
+					},
+				},
+			},
+		},
+		producer: metrics.NewProducer(&config.Config{}),
+	}
+
+	cm := config.CustomMetric{
+		MetricName:     "row_count",
+		MetricTags:     []string{"table_id:my-unused-view"},
+		MetricInterval: time.Second * 3600,
+		SQL:            "SELECT COUNT(*) AS `count` FROM `my-unused-view`",
+	}
+
+	collector := make(chan *metrics.Metric, 1)
+	g.ProduceCustomMetric(context.TODO(), cm, collector)
+	close(collector)
+
+	got := <-collector
+	want := &metrics.Metric{
+		Interval: 0,
+		Metric:   "custom_metric.row_count",
+		Points:   [][]float64{{float64(time.Now().Unix()), 0.0}},
+		Tags:     []string{"column_id:count", "table_id:my-unused-view"},
 		Type:     metrics.TypeGauge,
 	}
 	if !compareMetrics(want, got) {
