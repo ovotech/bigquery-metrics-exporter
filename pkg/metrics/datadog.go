@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 type httpClient interface {
@@ -23,7 +24,8 @@ type DatadogPublisher struct {
 
 // NewDatadogPublisher returns a new DatadogPublisher
 func NewDatadogPublisher(cfg *config.Config) *DatadogPublisher {
-	return &DatadogPublisher{cfg: cfg, client: http.DefaultClient}
+	client := &http.Client{Timeout: 10 * time.Second}
+	return &DatadogPublisher{cfg: cfg, client: client}
 }
 
 // PublishMetricsSet takes a list of metrics and publishes them to Datadog
