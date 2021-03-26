@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"fmt"
+	"github.com/googleapis/gax-go/v2"
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
@@ -201,13 +202,20 @@ func getValueFromFile(path string) (string, error) {
 	return string(content), nil
 }
 
-func getValueFromSecretManager(id string) (string, error) {
+type secretManagerClient interface {
+	AccessSecretVersion(context.Context, *smpb.AccessSecretVersionRequest, ...gax.CallOption) (*smpb.AccessSecretVersionResponse, error)
+}
+
+func getValueFromSecretManager(id string, client secretManagerClient) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	client, err := sm.NewClient(ctx)
-	if err != nil {
-		return "", fmt.Errorf("error creating Google Secret Manager client: %w", err)
+	if client == nil {
+		var err error
+		client, err = sm.NewClient(ctx)
+		if err != nil {
+			return "", fmt.Errorf("error creating Google Secret Manager client: %w", err)
+		}
 	}
 
 	req := &smpb.AccessSecretVersionRequest{Name: id}
@@ -229,7 +237,7 @@ func handleAliases(vpr *viper.Viper, target string) error {
 	}
 
 	if id := vpr.GetString(fmt.Sprintf("%s-secret-id", target)); id != "" {
-		val, err := getValueFromSecretManager(id)
+		val, err := getValueFromSecretManager(id, nil)
 		if err != nil {
 			return fmt.Errorf("failed to handle secret manager alias: %w", err)
 		}

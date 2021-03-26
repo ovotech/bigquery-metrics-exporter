@@ -1,6 +1,10 @@
 package config
 
 import (
+	"context"
+	"errors"
+	"github.com/googleapis/gax-go/v2"
+	smpb "google.golang.org/genproto/googleapis/cloud/secretmanager/v1"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -129,6 +133,30 @@ func TestNewConfig_configFile(t *testing.T) {
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("NewConfig() got = %v, want %v", got, want)
+	}
+}
+
+func TestNewConfig_configFile_invalidFormat(t *testing.T) {
+	f, err := ioutil.TempFile(os.TempDir(), "config_*.dat")
+	if err != nil {
+		t.Fatalf("error creating temporary file: %s", err)
+	}
+	defer func() {
+		n := f.Name()
+		_ = f.Close()
+		_ = os.Remove(n)
+	}()
+
+	data := []byte("{\"datadog-api-key\": \"abc123\"}")
+	if _, err = f.Write(data); err != nil {
+		t.Fatalf("error when writing test config file: %s", err)
+	}
+
+	os.Args = []string{"./bqmetricstest", "--config-file", f.Name()}
+
+	_, err = NewConfig("bqmetricstest")
+	if err == nil {
+		t.Errorf("NewConfig() error = %v, wantErr true", err)
 	}
 }
 
@@ -390,6 +418,60 @@ func TestNormaliseConfig(t *testing.T) {
 			NormaliseConfig(tt.arg)
 			if !reflect.DeepEqual(tt.want, tt.arg) {
 				t.Errorf("NormaliseConfig() got = %v, want = %v", tt.arg, tt.want)
+			}
+		})
+	}
+}
+
+type mockSecretManagerClient struct {
+	payload []byte
+	err     error
+}
+
+func (m mockSecretManagerClient) AccessSecretVersion(_ context.Context, req *smpb.AccessSecretVersionRequest, _ ...gax.CallOption) (*smpb.AccessSecretVersionResponse, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+
+	return &smpb.AccessSecretVersionResponse{
+		Name:    req.Name,
+		Payload: &smpb.SecretPayload{Data: m.payload},
+	}, nil
+}
+
+func Test_getValueFromSecretManager(t *testing.T) {
+	type args struct {
+		id     string
+		client secretManagerClient
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			"secret exists",
+			args{id: "123", client: mockSecretManagerClient{[]byte("my-secret-value"), nil}},
+			"my-secret-value",
+			false,
+		},
+		{
+			"secret doesnt exist",
+			args{id: "456", client: mockSecretManagerClient{nil, errors.New("secret not found")}},
+			"",
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getValueFromSecretManager(tt.args.id, tt.args.client)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getValueFromSecretManager() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("getValueFromSecretManager() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
