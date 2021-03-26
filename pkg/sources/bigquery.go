@@ -36,7 +36,7 @@ func NewGenerator(ctx context.Context, cfg *config.Config) (*Generator, error) {
 
 // ProduceMetrics will generate table level metrics for all BigQuery tables
 func (g Generator) ProduceMetrics(ctx context.Context, receiver chan *metrics.Metric) {
-	log.Debug().Msg("Producing table level metrics")
+	log.Debug().Str("dataset-filter", g.cfg.DatasetFilter).Msg("Producing table level metrics")
 
 	wg := sync.WaitGroup{}
 	for ds := range iterateDatasets(ctx, g.client, g.cfg.DatasetFilter) {
