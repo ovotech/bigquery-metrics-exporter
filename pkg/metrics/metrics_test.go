@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/config"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 )
@@ -289,7 +290,9 @@ func TestProducer_Produce(t *testing.T) {
 
 func TestConsumer_Run(t *testing.T) {
 	c := NewConsumer()
-	receiver := c.Run()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	receiver := c.Run(context.TODO(), &wg)
 
 	if len(c.metrics) != 0 {
 		t.Errorf("len(c.metrics) = %v, want %v", len(c.metrics), 0)
