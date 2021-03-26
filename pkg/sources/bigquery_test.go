@@ -38,7 +38,7 @@ func Test_iterateDatasets(t *testing.T) {
 		newMockDatasetDefaults("dataset-1"),
 		newMockDatasetDefaults("dataset-2"),
 	})
-	out := iterateDatasets(context.TODO(), cl)
+	out := iterateDatasets(context.TODO(), cl, "")
 
 	got := make([]string, 0)
 	for ds := range out {
@@ -48,6 +48,18 @@ func Test_iterateDatasets(t *testing.T) {
 	want := []string{"dataset-1", "dataset-2"}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("iterateDatasets() got %v, want %v", got, want)
+	}
+}
+
+func Test_iterateDatasets_withFiltering(t *testing.T) {
+	cl := newMockClient("my-project", []mockDataset{})
+	out := iterateDatasets(context.TODO(), cl, "filter:yes")
+	<- out
+
+	want := "labels.filter:yes"
+	got := cl.iterator.(*mockDatasetIterator).filter
+	if want != got {
+		t.Errorf("iterateDatasets() applied filter got %v, want %v", got, want)
 	}
 }
 
@@ -97,7 +109,7 @@ func TestGenerator_outputTableLevelMetrics(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := Generator{
 				cfg:      &config.Config{},
-				client:   mockClient{},
+				client:   &mockClient{},
 				producer: metrics.NewProducer(&config.Config{}),
 			}
 
@@ -158,7 +170,7 @@ func compareMetrics(got, want *metrics.Metric) bool {
 func TestGenerator_runSQLQuery(t *testing.T) {
 	g := Generator{
 		cfg:      &config.Config{},
-		client:   mockClient{},
+		client:   &mockClient{},
 		producer: metrics.NewProducer(&config.Config{}),
 	}
 
@@ -177,7 +189,7 @@ func TestGenerator_runSQLQuery(t *testing.T) {
 func TestGenerator_produceCustomMetrics(t *testing.T) {
 	g := Generator{
 		cfg: &config.Config{},
-		client: mockClient{
+		client: &mockClient{
 			query: &mockQuery{
 				job: &mockJob{
 					rows: &mockRowIterator{
@@ -216,7 +228,7 @@ func TestGenerator_produceCustomMetrics(t *testing.T) {
 func TestGenerator_produceCustomMetrics_noMetricsWhenNoResults(t *testing.T) {
 	g := Generator{
 		cfg:      &config.Config{},
-		client:   mockClient{},
+		client:   &mockClient{},
 		producer: metrics.NewProducer(&config.Config{}),
 	}
 
@@ -245,7 +257,7 @@ func TestGenerator_produceCustomMetrics_noMetricsWhenNoResults(t *testing.T) {
 func TestGenerator_produceCustomMetrics_produceMetricsWhenZeroResult(t *testing.T) {
 	g := Generator{
 		cfg: &config.Config{},
-		client: mockClient{
+		client: &mockClient{
 			query: &mockQuery{
 				job: &mockJob{
 					rows: &mockRowIterator{
@@ -286,17 +298,23 @@ type mockClient struct {
 	proj     string
 	datasets []mockDataset
 	query    *mockQuery
+	iterator bq.DatasetIterator
 }
 
-func (m mockClient) Datasets(_ context.Context) bq.DatasetIterator {
-	return &mockDatasetIterator{
+func (m *mockClient) Datasets(_ context.Context) bq.DatasetIterator {
+	if m.iterator != nil {
+		return m.iterator
+	}
+
+	m.iterator = &mockDatasetIterator{
 		filter:   "",
 		datasets: m.datasets,
 		idx:      0,
 	}
+	return m.iterator
 }
 
-func (m mockClient) Query(sql string) bq.Query {
+func (m *mockClient) Query(sql string) bq.Query {
 	if m.query != nil {
 		return m.query
 	}
@@ -308,11 +326,11 @@ func (m mockClient) Query(sql string) bq.Query {
 	}
 }
 
-func newMockClient(proj string, datasets []mockDataset) mockClient {
+func newMockClient(proj string, datasets []mockDataset) *mockClient {
 	for i := range datasets {
 		datasets[i].proj = proj
 	}
-	return mockClient{
+	return &mockClient{
 		proj:     proj,
 		datasets: datasets,
 	}

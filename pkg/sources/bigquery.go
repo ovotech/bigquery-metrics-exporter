@@ -36,10 +36,10 @@ func NewGenerator(ctx context.Context, cfg *config.Config) (*Generator, error) {
 
 // ProduceMetrics will generate table level metrics for all BigQuery tables
 func (g Generator) ProduceMetrics(ctx context.Context, receiver chan *metrics.Metric) {
-	log.Debug().Msg("Producing table level metrics")
+	log.Debug().Str("dataset-filter", g.cfg.DatasetFilter).Msg("Producing table level metrics")
 
 	wg := sync.WaitGroup{}
-	for ds := range iterateDatasets(ctx, g.client) {
+	for ds := range iterateDatasets(ctx, g.client, g.cfg.DatasetFilter) {
 		for tbl := range iterateTables(ctx, ds) {
 			wg.Add(1)
 			go g.outputTableLevelMetrics(ctx, tbl, receiver, &wg)
@@ -151,13 +151,16 @@ func (g Generator) outputTableLevelMetrics(ctx context.Context, t bq.Table, out 
 	out <- g.producer.Produce("table.last_modified", metrics.NewReading(float64(now)-float64(meta.LastModifiedTime.Unix())), tags)
 }
 
-func iterateDatasets(ctx context.Context, client bq.Client) chan bq.Dataset {
+func iterateDatasets(ctx context.Context, client bq.Client, filter string) chan bq.Dataset {
 	var out chan bq.Dataset
 	out = make(chan bq.Dataset)
 
 	go func() {
 		defer close(out)
 		iter := client.Datasets(ctx)
+		if filter != "" {
+			iter.SetFilter(fmt.Sprintf("labels.%s", filter))
+		}
 
 		for {
 			ds, err := iter.Next()

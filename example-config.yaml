@@ -35,6 +35,14 @@
 #   - team:my-team
 
 ###
+# A label to filter BigQuery datasets by when querying for table metrics. Only
+# datasets that have this label will have metrics generated for them. For more
+# information see the BigQuery docs:
+# https://cloud.google.com/bigquery/docs/labels-intro
+#
+# dataset-filter: metrics-collector:bqmetrics
+
+###
 # An array of custom metrics to publish. Each custom metric has a name under
 # which it is published, as well as a list of tags (which are merged with the
 # global tags list) and collection interval.

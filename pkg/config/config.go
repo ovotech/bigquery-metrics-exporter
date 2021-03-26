@@ -38,6 +38,7 @@ var Version = "0.0.0"
 // Config holds the configuration for the application
 type Config struct {
 	DatadogAPIKey  string         `viper:"datadog-api-key"`
+	DatasetFilter  string         `viper:"dataset-filter"`
 	GcpProject     string         `viper:"gcp-project-id"`
 	MetricPrefix   string         `viper:"metric-prefix"`
 	MetricTags     []string       `viper:"metric-tags"`
@@ -168,6 +169,7 @@ func configFlags(name string) *pflag.FlagSet {
 
 	flags := pflag.NewFlagSet(name, pflag.ExitOnError)
 	flags.String("config-file", "", "Path to the config file")
+	flags.String("dataset-filter", "", "BigQuery label to filter datasets for metric collection")
 	flags.String("datadog-api-key-file", "", "File containing the Datadog API key")
 	flags.String("datadog-api-key-secret-id", "", "Google Secret Manager Resource ID containing the Datadog API key")
 	flags.String("gcp-project-id", "", "The GCP project to extract BigQuery metrics from")
