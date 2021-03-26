@@ -95,6 +95,7 @@ line options.
 | DATADOG_API_KEY |  | The Datadog API key |
 | DATADOG_API_KEY_FILE | --datadog-api-key-file | File containing Datadog API key |
 | DATADOG_API_KEY_SECRET_ID | --datadog-api-key-secret-id | Path to a secret held in Google Secret Manager containing Datadog API key, e.g. `projects/my-project/secrets/datadog-api-key/versions/3` |
+| DATASET_FILTER | --dataset-filter | BigQuery label to filter datasets for metric collection |
 | GCP_PROJECT_ID | --gcp-project-id | (Required) The Google Cloud project containing the BigQuery tables to retrieve metrics from |
 | GOOGLE_APPLICATION_CREDENTIALS | | File containing service account details to authenticate to Google Cloud using |
 | LOG_LEVEL | | The logging level (e.g. trace, debug, info, warn, error). Defaults to *info* |

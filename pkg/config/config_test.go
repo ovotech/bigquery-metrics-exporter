@@ -41,16 +41,18 @@ func TestNewConfig(t *testing.T) {
 		want    *Config
 		wantErr bool
 	}{
-		{"all via env", setup([]string{"DATADOG_API_KEY=abc123", "GCP_PROJECT_ID=my-project-id", "METRIC_PREFIX=custom.gcp.bigquery.stats", "METRIC_TAGS=env:prod", "METRIC_INTERVAL=2m"}, nil, ""), args{"bqmetricstest"}, &Config{
+		{"all via env", setup([]string{"DATADOG_API_KEY=abc123", "DATASET_FILTER=bqmetrics:enabled", "GCP_PROJECT_ID=my-project-id", "METRIC_PREFIX=custom.gcp.bigquery.stats", "METRIC_TAGS=env:prod", "METRIC_INTERVAL=2m"}, nil, ""), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
+			DatasetFilter:  "bqmetrics:enabled",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: 2 * time.Minute,
 			Profiling:      false,
 		}, false},
-		{"all via cmd", setup(nil, []string{"--datadog-api-key-file=/tmp/dd.key", "--gcp-project-id=my-project-id", "--metric-prefix=custom.gcp.bigquery.stats", "--metric-tags=env:prod", "--metric-interval=2m", "--enable-profiler"}, "abc123"), args{"bqmetricstest"}, &Config{
+		{"all via cmd", setup(nil, []string{"--datadog-api-key-file=/tmp/dd.key", "--dataset-filter=bqmetrics:enabled", "--gcp-project-id=my-project-id", "--metric-prefix=custom.gcp.bigquery.stats", "--metric-tags=env:prod", "--metric-interval=2m", "--enable-profiler"}, "abc123"), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
+			DatasetFilter:  "bqmetrics:enabled",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
@@ -111,7 +113,7 @@ func TestNewConfig_configFile(t *testing.T) {
 		_ = os.Remove(n)
 	}()
 
-	data := []byte("{\"datadog-api-key\": \"abc123\", \"gcp-project-id\": \"my-project-id\", \"metric-prefix\": \"custom.gcp.bigquery.stats\", \"metric-tags\": \"env:prod,team:my-team\", \"metric-interval\": \"2m\"}")
+	data := []byte("{\"datadog-api-key\": \"abc123\", \"dataset-filter\": \"bqmetrics:enabled\", \"gcp-project-id\": \"my-project-id\", \"metric-prefix\": \"custom.gcp.bigquery.stats\", \"metric-tags\": \"env:prod,team:my-team\", \"metric-interval\": \"2m\"}")
 	if _, err = f.Write(data); err != nil {
 		t.Fatalf("error when writing test config file: %s", err)
 	}
@@ -119,6 +121,7 @@ func TestNewConfig_configFile(t *testing.T) {
 	os.Args = []string{"./bqmetricstest", "--config-file", f.Name()}
 	want := &Config{
 		DatadogAPIKey:  "abc123",
+		DatasetFilter:  "bqmetrics:enabled",
 		GcpProject:     "my-project-id",
 		MetricPrefix:   "custom.gcp.bigquery.stats",
 		MetricTags:     []string{"env:prod", "team:my-team"},
