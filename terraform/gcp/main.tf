@@ -97,6 +97,7 @@ locals {
   config_init = {
     custom-metrics            = var.custom-metrics
     datadog-api-key-secret-id = data.google_secret_manager_secret_version.datadog-api-key.id
+    dataset-filter            = var.dataset-filter
     gcp-project-id            = local.bigquery-project
     metric-interval           = var.metric-interval
     metric-prefix             = var.metric-prefix
