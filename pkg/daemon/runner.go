@@ -50,8 +50,11 @@ func NewRunner(ctx context.Context, cfg *config.Config) (*Runner, error) {
 func (d *Runner) RunOnce(ctx context.Context) error {
 	log.Info().Msg("Starting Runner")
 
-	receiver := d.consumer.Run()
-	defer close(receiver)
+	cwg := sync.WaitGroup{}
+	cwg.Add(1)
+
+	consumerCtx, done := context.WithCancel(ctx)
+	receiver := d.consumer.Run(consumerCtx, &cwg)
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(d.cfg.CustomMetrics))
@@ -64,6 +67,10 @@ func (d *Runner) RunOnce(ctx context.Context) error {
 	wg.Wait()
 
 	d.generator.ProduceMetrics(ctx, receiver)
+
+	done()
+	cwg.Wait()
+
 	err := d.consumer.PublishTo(ctx, d.publisher)
 
 	log.Err(err).Msg("Finishing Runner")
@@ -80,14 +87,13 @@ func (d *Runner) RunUntil(ctx context.Context) error {
 	var abort context.CancelFunc
 	ctx, abort = context.WithCancel(ctx)
 
-	receiver := d.consumer.Run()
-	defer close(receiver)
-
 	var problem chan error
 	problem = make(chan error, 1)
 
 	wg := sync.WaitGroup{}
-	wg.Add(2 + len(d.cfg.CustomMetrics))
+	wg.Add(3 + len(d.cfg.CustomMetrics))
+
+	receiver := d.consumer.Run(ctx, &wg)
 
 	go d.startMetricPublisher(ctx, abort, &wg, problem)
 	go d.startTableMetricsGenerator(ctx, &wg, receiver)
@@ -97,16 +103,10 @@ func (d *Runner) RunUntil(ctx context.Context) error {
 
 	wg.Wait()
 
-	select {
-	case err := <-problem:
-		log.Err(err).Msg("Finishing Runner")
-
-		return err
-	default:
-		log.Info().Msg("Finishing Runner")
-
-		return nil
-	}
+	close(problem)
+	err := <- problem
+	log.Err(err).Msg("Finishing Runner")
+	return err
 }
 
 func (d *Runner) startMetricPublisher(ctx context.Context, abort context.CancelFunc, wg *sync.WaitGroup, problem chan error) {
