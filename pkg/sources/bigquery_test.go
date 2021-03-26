@@ -38,7 +38,7 @@ func Test_iterateDatasets(t *testing.T) {
 		newMockDatasetDefaults("dataset-1"),
 		newMockDatasetDefaults("dataset-2"),
 	})
-	out := iterateDatasets(context.TODO(), cl)
+	out := iterateDatasets(context.TODO(), cl, "")
 
 	got := make([]string, 0)
 	for ds := range out {
