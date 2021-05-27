@@ -58,7 +58,7 @@ jobs:
     executor: terraform/terraform-0_12
     steps:
       - checkout
-      - run: echo "0.12.26" >> terraform/gcp/.tfswitch
+      - run: echo "0.12.26" >> terraform/gcp/.tfswitchrc
       - terraform/validate:
           path: terraform/gcp
 
