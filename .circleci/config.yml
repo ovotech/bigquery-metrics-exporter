@@ -56,11 +56,8 @@ jobs:
 
   tf-validate:
     executor: terraform/terraform-0_12
-    environment:
-      TF_LOG: DEBUG
     steps:
       - checkout
-      - run: echo "0.12.26" >> terraform/gcp/.tfswitchrc
       - terraform/validate:
           path: terraform/gcp
           use_chdir: true
