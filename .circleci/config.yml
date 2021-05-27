@@ -63,6 +63,7 @@ jobs:
       - run: echo "0.12.26" >> terraform/gcp/.tfswitchrc
       - terraform/validate:
           path: terraform/gcp
+          use_chdir: true
 
   tf-publish:
     executor: terraform/terraform-0_12
