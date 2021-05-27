@@ -56,10 +56,9 @@ jobs:
 
   tf-validate:
     executor: terraform/terraform-0_12
-    environment:
-      TF_VERSION: 0.12.26
     steps:
       - checkout
+      - run: echo "0.12.26" >> .tfswitch
       - terraform/validate:
           path: terraform/gcp
 
