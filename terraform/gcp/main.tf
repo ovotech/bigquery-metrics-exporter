@@ -54,6 +54,7 @@ resource "google_compute_instance_template" "bqmetricsd" {
 
   metadata = merge(
     { (module.container.metadata_key) = module.container.metadata_value },
+    var.block-project-ssh-keys ? { block-project-ssh-keys = "true" } : {},
     var.stackdriver-monitoring ? { google-monitoring-enabled = "true" } : {},
     var.stackdriver-logging ? { google-logging-enabled = "true" } : {},
   )

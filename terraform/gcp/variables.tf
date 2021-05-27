@@ -4,6 +4,12 @@ variable "bigquery-project-id" {
   default     = ""
 }
 
+variable "block-project-ssh-keys" {
+  type        = bool
+  description = "Block project-wide SSH keys from being able to connect to the instance"
+  default     = true
+}
+
 variable "custom-metrics" {
   type        = any
   description = <<-EOT
