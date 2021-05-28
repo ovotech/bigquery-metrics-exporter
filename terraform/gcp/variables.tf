@@ -36,6 +36,12 @@ variable "dataset-filter" {
   default     = ""
 }
 
+variable "enable-os-login" {
+  type        = bool
+  description = "Enables OS login on the instance"
+  default     = false
+}
+
 variable "image-repository" {
   type        = string
   description = "The repository where the image is stored"
