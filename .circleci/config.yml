@@ -60,6 +60,7 @@ jobs:
       - checkout
       - terraform/validate:
           path: terraform/gcp
+          use_chdir: true
 
   tf-publish:
     executor: terraform/terraform-0_12

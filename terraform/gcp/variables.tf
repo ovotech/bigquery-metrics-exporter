@@ -4,6 +4,12 @@ variable "bigquery-project-id" {
   default     = ""
 }
 
+variable "block-project-ssh-keys" {
+  type        = bool
+  description = "Block project-wide SSH keys from being able to connect to the instance"
+  default     = true
+}
+
 variable "custom-metrics" {
   type        = any
   description = <<-EOT
@@ -28,6 +34,12 @@ variable "dataset-filter" {
   type        = string
   description = "A label to filter BigQuery datasets by when querying for table metrics"
   default     = ""
+}
+
+variable "enable-os-login" {
+  type        = bool
+  description = "Enables OS login on the instance"
+  default     = false
 }
 
 variable "image-repository" {
