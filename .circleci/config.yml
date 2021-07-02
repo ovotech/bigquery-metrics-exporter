@@ -51,6 +51,7 @@ jobs:
     executor: terraform/terraform-0_12
     steps:
       - checkout
+      - run: echo 'version = "0.12.31"' >> terraform/gcp/.tfswitch.toml
       - terraform/fmt-check:
           path: terraform/gcp
 
@@ -58,9 +59,9 @@ jobs:
     executor: terraform/terraform-0_12
     steps:
       - checkout
+      - run: echo 'version = "0.12.31"' >> terraform/gcp/.tfswitch.toml
       - terraform/validate:
           path: terraform/gcp
-          use_chdir: true
 
   tf-publish:
     executor: terraform/terraform-0_12
