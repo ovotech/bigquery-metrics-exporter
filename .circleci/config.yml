@@ -51,6 +51,7 @@ jobs:
     executor: terraform/terraform-0_12
     steps:
       - checkout
+      - run: echo "0.12.31" >> terraform/gcp/.tfswitchrc
       - terraform/fmt-check:
           path: terraform/gcp
 
@@ -58,6 +59,7 @@ jobs:
     executor: terraform/terraform-0_12
     steps:
       - checkout
+      - run: echo "0.12.31" >> terraform/gcp/.tfswitchrc
       - terraform/validate:
           path: terraform/gcp
           use_chdir: true
