@@ -1,6 +1,21 @@
 # Terraform GCP module
 This Terraform module creates a GCE instance running the `bqmetricsd` service.
 
+## Usage
+```hcl
+data "google_compute_subnetwork" "default" {
+  name   = "default"
+  region = "europe-west1"
+}
+
+module "bqmetrics" {
+  source = "git::https://github.com/ovotech/bigquery-metrics-exporter.git//terraform/gcp?ref=v1.2.2"
+
+  datadog-api-key-secret = "datadog-api-key"
+  subnetwork             = data.google_compute_subnetwork.default.self_link
+}
+```
+
 ## Variables
 #### bigquery-project-id (string)
 Optional
