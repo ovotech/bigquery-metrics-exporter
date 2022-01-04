@@ -6,10 +6,14 @@ import (
 	"net/http"
 )
 
+// Status is the health status of the service
 type Status string
 
 const (
-	Ok = Status("OK")
+	// Ok status means that the service is operating nominally
+	Ok    = Status("OK")
+
+	// Error status means that something is going wrong with the service
 	Error = Status("Error")
 )
 

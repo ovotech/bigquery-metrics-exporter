@@ -12,15 +12,15 @@ func TestServiceStatus_Handler(t *testing.T) {
 	}
 	type want struct {
 		status int
-		body string
+		body   string
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   want
 	}{
-		{ "health ok", fields{Status: Ok}, want{200, "{\"status\":\"OK\"}"}},
-		{ "health fail", fields{Status: Error}, want{500, "{\"status\":\"Error\"}"}},
+		{"health ok", fields{Status: Ok}, want{200, "{\"status\":\"OK\"}"}},
+		{"health fail", fields{Status: Error}, want{500, "{\"status\":\"Error\"}"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
