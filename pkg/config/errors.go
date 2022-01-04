@@ -20,4 +20,7 @@ var (
 
 	// ErrMissingCustomMetricSQL is the error returned when a CustomMetric is missing SQL
 	ErrMissingCustomMetricSQL = errors.New("no custom metric sql query configured")
+
+	// ErrInvalidPort is the error returned when an invalid port is specified
+	ErrInvalidPort = errors.New("invalid port specified")
 )

@@ -22,8 +22,8 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to parse config")
 	}
 
-	if cfg.Profiling {
-		addr := "localhost:6060"
+	if cfg.Profiler.Enabled {
+		addr := fmt.Sprintf("localhost:%d", cfg.Profiler.Port)
 		log.Info().Msgf("Running profiler on %s", addr)
 
 		go func() {

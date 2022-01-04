@@ -48,16 +48,16 @@ func TestNewConfig(t *testing.T) {
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: 2 * time.Minute,
-			Profiling:      false,
+			Profiler:       Profiler{false, 6060},
 		}, false},
-		{"all via cmd", setup(nil, []string{"--datadog-api-key-file=/tmp/dd.key", "--dataset-filter=bqmetrics:enabled", "--gcp-project-id=my-project-id", "--metric-prefix=custom.gcp.bigquery.stats", "--metric-tags=env:prod", "--metric-interval=2m", "--enable-profiler"}, "abc123"), args{"bqmetricstest"}, &Config{
+		{"all via cmd", setup(nil, []string{"--datadog-api-key-file=/tmp/dd.key", "--dataset-filter=bqmetrics:enabled", "--gcp-project-id=my-project-id", "--metric-prefix=custom.gcp.bigquery.stats", "--metric-tags=env:prod", "--metric-interval=2m", "--profiler.enabled"}, "abc123"), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
 			DatasetFilter:  "bqmetrics:enabled",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: 2 * time.Minute,
-			Profiling:      true,
+			Profiler:       Profiler{true, 6060},
 		}, false},
 		{"mixture of sources", setup([]string{"DATADOG_API_KEY=abc123", "GCP_PROJECT_ID=my-project-id"}, []string{"--metric-prefix=custom.gcp.bigquery.stats", "--metric-tags=env:prod", "--metric-interval=2m"}, ""), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
@@ -65,7 +65,7 @@ func TestNewConfig(t *testing.T) {
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: 2 * time.Minute,
-			Profiling:      false,
+			Profiler:       Profiler{false, 6060},
 		}, false},
 		{"minimum required config", setup([]string{"DATADOG_API_KEY=abc123", "GCP_PROJECT_ID=my-project-id"}, nil, ""), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
@@ -73,7 +73,7 @@ func TestNewConfig(t *testing.T) {
 			MetricPrefix:   DefaultMetricPrefix,
 			MetricTags:     nil,
 			MetricInterval: 30 * time.Second,
-			Profiling:      false,
+			Profiler:       Profiler{false, 6060},
 		}, false},
 		{"default credentials", setup([]string{"DATADOG_API_KEY=abc123", "GOOGLE_APPLICATION_CREDENTIALS=/tmp/dd.key"}, nil, "{\"type\": \"service_account\", \"project_id\": \"my-project-id\"}"), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
@@ -81,7 +81,7 @@ func TestNewConfig(t *testing.T) {
 			MetricPrefix:   DefaultMetricPrefix,
 			MetricTags:     nil,
 			MetricInterval: 30 * time.Second,
-			Profiling:      false,
+			Profiler:       Profiler{false, 6060},
 		}, false},
 		{"unreadable key file", setup([]string{"DATADOG_API_KEY_FILE=/tmp/not-found.key", "GCP_PROJECT_ID=my-project-id"}, nil, "abc123"), args{"bqmetricstest"}, nil, true},
 		{"missing key", setup([]string{"GCP_PROJECT_ID=my-project-id"}, nil, ""), args{"bqmetricstest"}, nil, true},
@@ -126,7 +126,7 @@ func TestNewConfig_configFile(t *testing.T) {
 		MetricPrefix:   "custom.gcp.bigquery.stats",
 		MetricTags:     []string{"env:prod", "team:my-team"},
 		MetricInterval: 2 * time.Minute,
-		Profiling:      false,
+		Profiler:       Profiler{false, 6060},
 	}
 
 	got, err := NewConfig("bqmetricstest")
@@ -186,7 +186,7 @@ func TestNewConfig_configFileWithCustomQueries(t *testing.T) {
 		MetricPrefix:   "custom.gcp.bigquery.stats",
 		MetricTags:     []string{"env:prod", "team:my-team"},
 		MetricInterval: 2 * time.Minute,
-		Profiling:      false,
+		Profiler:       Profiler{false, 6060},
 		CustomMetrics: []CustomMetric{{
 			MetricName:     "my_metric",
 			MetricTags:     []string{"table_id:table"},
@@ -262,7 +262,7 @@ func TestValidateConfig(t *testing.T) {
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
 			MetricInterval: time.Duration(30000),
-			Profiling:      false,
+			Profiler:       Profiler{false, 6060},
 		}}, false},
 		{"custom metrics okay", args{&Config{
 			DatadogAPIKey:  "abc123",
