@@ -45,6 +45,7 @@ type Config struct {
 	MetricInterval time.Duration  `viper:"metric-interval"`
 	CustomMetrics  []CustomMetric `viper:"custom-metrics"`
 	Profiler       Profiler       `viper:"profiler"`
+	HealthCheck    HealthCheck    `viper:"healthcheck"`
 }
 
 // CustomMetric holds details about a metric generated from an SQL query
@@ -57,6 +58,12 @@ type CustomMetric struct {
 
 // Profiler holds configuration details for the profiler
 type Profiler struct {
+	Enabled bool `viper:"enabled"`
+	Port    int  `viper:"port"`
+}
+
+// HealthCheck holds configuration details for the health endpoint
+type HealthCheck struct {
 	Enabled bool `viper:"enabled"`
 	Port    int  `viper:"port"`
 }
@@ -156,6 +163,12 @@ func ValidateConfig(c *Config) error {
 		}
 	}
 
+	if c.HealthCheck.Enabled {
+		if c.HealthCheck.Port <= 0 || c.HealthCheck.Port > 65535 {
+			return ErrInvalidPort
+		}
+	}
+
 	if c.Profiler.Enabled {
 		if c.Profiler.Port <= 0 || c.Profiler.Port > 65535 {
 			return ErrInvalidPort
@@ -190,6 +203,8 @@ func configFlags(name string) *pflag.FlagSet {
 	flags.StringSlice("metric-tags", []string{}, "Comma-delimited list of tags to attach to metrics")
 	flags.Bool("profiler.enabled", false, "Enables the profiler")
 	flags.Int("profiler.port", 6060, "The port on which to run the profiler server")
+	flags.Bool("healthcheck.enabled", false, "Enables the health check endpoint")
+	flags.Int("healthcheck.port", 8080, "The port on which to run the server providing the health check endpoint")
 
 	_ = flags.Parse(os.Args[1:])
 
