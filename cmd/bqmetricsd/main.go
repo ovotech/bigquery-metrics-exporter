@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/config"
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/daemon"
+	"github.com/ovotech/bigquery-metrics-extractor/pkg/health"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"net/http"
@@ -35,6 +36,20 @@ func main() {
 
 		go func() {
 			log.Err(http.ListenAndServe(addr, mux)).Msg("Shutting down profiler")
+		}()
+	}
+
+	if cfg.HealthCheck.Enabled {
+		addr := fmt.Sprintf("localhost:%d", cfg.HealthCheck.Port)
+		log.Info().Msgf("Running healthcheck server on %s", addr)
+
+		healthsrv := health.ServiceStatus{Status: health.Ok}
+
+		mux := http.NewServeMux()
+		mux.HandleFunc("/health", healthsrv.Handler)
+
+		go func() {
+			log.Err(http.ListenAndServe(addr, mux)).Msg("Shutting down healthcheck server")
 		}()
 	}
 
