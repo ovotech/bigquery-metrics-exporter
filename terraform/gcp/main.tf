@@ -83,6 +83,15 @@ resource "google_compute_instance_group_manager" "bqmetricsd" {
   wait_for_instances = true
   zone               = local.zone
 
+  dynamic "auto_healing_policies" {
+    for_each = var.enable-autohealing ? google_compute_health_check.autohealing[*].id : []
+
+    content {
+      health_check      = auto_healing_policies.value
+      initial_delay_sec = 300
+    }
+  }
+
   update_policy {
     minimal_action  = "REPLACE"
     type            = "PROACTIVE"
@@ -95,6 +104,42 @@ resource "google_compute_instance_group_manager" "bqmetricsd" {
   }
 }
 
+resource "google_compute_health_check" "autohealing" {
+  count = var.enable-autohealing ? 1 : 0
+
+  name                = "bqmetricsd-${random_string.suffix.result}-autohealing"
+  check_interval_sec  = 5
+  timeout_sec         = 5
+  healthy_threshold   = 1
+  unhealthy_threshold = 6
+
+  http_health_check {
+    request_path = "/health"
+    port         = "8080"
+  }
+}
+
+data "google_compute_subnetwork" "subnetwork" {
+  self_link = var.subnetwork
+}
+
+// Firewall rule to allow access to the bqmetrics healthcheck endpoint
+// from the GCP source IPs https://cloud.google.com/load-balancing/docs/health-check-concepts#ip-ranges
+resource "google_compute_firewall" "autohealing" {
+  count = var.enable-autohealing ? 1 : 0
+
+  name    = "bqmetricsd-${random_string.suffix.result}-autohealing"
+  network = data.google_compute_subnetwork.subnetwork.network
+
+  target_service_accounts = [local.service-account-email]
+  source_ranges           = ["35.191.0.0/16", "130.211.0.0/22"]
+
+  allow {
+    protocol = "tcp"
+    ports    = [8080]
+  }
+}
+
 locals {
   config_init = {
     custom-metrics            = var.custom-metrics
@@ -104,6 +149,10 @@ locals {
     metric-interval           = var.metric-interval
     metric-prefix             = var.metric-prefix
     metric-tags               = var.metric-tags
+    healthcheck = {
+      enabled = var.enable-autohealing
+      port    = 8080
+    }
   }
   config = { for k, v in local.config_init : k => v if v != "" }
 }

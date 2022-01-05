@@ -36,6 +36,12 @@ variable "dataset-filter" {
   default     = ""
 }
 
+variable "enable-autohealing" {
+  type        = bool
+  description = "Enables autohealing using the healthcheck endpoint"
+  default     = true
+}
+
 variable "enable-os-login" {
   type        = bool
   description = "Enables OS login on the instance"
