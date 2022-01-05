@@ -40,7 +40,7 @@ func main() {
 	}
 
 	if cfg.HealthCheck.Enabled {
-		addr := fmt.Sprintf("localhost:%d", cfg.HealthCheck.Port)
+		addr := fmt.Sprintf("0.0.0.0:%d", cfg.HealthCheck.Port)
 		log.Info().Msgf("Running healthcheck server on %s", addr)
 
 		healthsrv := health.ServiceStatus{Status: health.Ok}
