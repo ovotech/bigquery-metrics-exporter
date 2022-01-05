@@ -64,6 +64,13 @@ Whether to enable the OS Login feature on the instance or not. OS Login allows
 users to connect to the instance so should ideally be used for debugging only.
 Defaults to `false`. https://cloud.google.com/compute/docs/oslogin
 
+#### enable-autohealing (boolean)
+Optional
+
+Whether to enable the autohealing feature of the Managed Instance Group or not.
+Enabling autohealing will enable the healthcheck endpoint of `bqmetricsd` on
+port 8080. Defaults to `true`. 
+
 #### image-repository (string)
 Optional
 
