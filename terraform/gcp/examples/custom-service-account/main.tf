@@ -18,7 +18,7 @@ module "bigquery-metrics-exporter" {
   source = "../.."
 
   datadog-api-key-secret = "datadog-api-key"
-  subnetwork             = data.google_compute_subnetwork.default.self_link
+  subnetwork             = data.google_compute_subnetwork.default.id
   service-account-email  = google_service_account.custom.email
 }
 
