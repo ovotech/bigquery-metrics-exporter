@@ -190,7 +190,7 @@ func (c *Consumer) Run(ctx context.Context, wg *sync.WaitGroup) chan *Metric {
 
 	receiver := make(chan *Metric)
 	go func() {
-		<- ctx.Done()
+		<-ctx.Done()
 		close(receiver)
 	}()
 
