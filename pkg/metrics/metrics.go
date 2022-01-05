@@ -189,16 +189,18 @@ func (c *Consumer) Run(ctx context.Context, wg *sync.WaitGroup) chan *Metric {
 	log.Debug().Msg("Starting metric consumer")
 
 	receiver := make(chan *Metric)
-	go func() {
-		<-ctx.Done()
-		close(receiver)
-	}()
 
 	go func() {
 		defer wg.Done()
 
-		for metric := range receiver {
-			c.consume(metric)
+		for {
+			select {
+			case metric := <-receiver:
+				c.consume(metric)
+			case <-ctx.Done():
+				close(receiver)
+				return
+			}
 		}
 	}()
 	return receiver
