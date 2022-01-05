@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/config"
 	"github.com/ovotech/bigquery-metrics-extractor/pkg/daemon"
+	"github.com/ovotech/bigquery-metrics-extractor/pkg/health"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"net/http"
-	_ "net/http/pprof"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 )
@@ -22,12 +23,33 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to parse config")
 	}
 
-	if cfg.Profiling {
-		addr := "localhost:6060"
+	if cfg.Profiler.Enabled {
+		addr := fmt.Sprintf("localhost:%d", cfg.Profiler.Port)
 		log.Info().Msgf("Running profiler on %s", addr)
 
+		mux := http.NewServeMux()
+		mux.HandleFunc("/debug/pprof/", pprof.Index)
+		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
 		go func() {
-			log.Err(http.ListenAndServe(addr, nil)).Msg("Shutting down profiler")
+			log.Err(http.ListenAndServe(addr, mux)).Msg("Shutting down profiler")
+		}()
+	}
+
+	if cfg.HealthCheck.Enabled {
+		addr := fmt.Sprintf("localhost:%d", cfg.HealthCheck.Port)
+		log.Info().Msgf("Running healthcheck server on %s", addr)
+
+		healthsrv := health.ServiceStatus{Status: health.Ok}
+
+		mux := http.NewServeMux()
+		mux.HandleFunc("/health", healthsrv.Handler)
+
+		go func() {
+			log.Err(http.ListenAndServe(addr, mux)).Msg("Shutting down healthcheck server")
 		}()
 	}
 
