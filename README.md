@@ -111,6 +111,8 @@ line options.
 | DATASET_FILTER | --dataset-filter | BigQuery label to filter datasets for metric collection |
 | GCP_PROJECT_ID | --gcp-project-id | (Required) The Google Cloud project containing the BigQuery tables to retrieve metrics from |
 | GOOGLE_APPLICATION_CREDENTIALS | | File containing service account details to authenticate to Google Cloud using |
+| HEALTHCHECK_ENABLED | --healthcheck.enabled | Whether to enable the health check endpoint at /health. Defaults to *false* |
+| HEALTHCHECK_PORT | --healthcheck.port | The port to run the health check server on. Defaults to *8080* | 
 | LOG_LEVEL | | The logging level (e.g. trace, debug, info, warn, error). Defaults to *info* |
 | METRIC_INTERVAL | --metric-interval | The interval between metric collection rounds. Must contain a unit and valid units are "ns", "us" (or "µs"), "ms", "s", "m", "h". Defaults to *30s* |
 | METRIC_PREFIX | --metric-prefix | The prefix for the metric names exported to Datadog. Defaults to *custom.gcp.bigquery* |
