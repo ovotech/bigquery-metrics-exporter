@@ -57,3 +57,11 @@
 #       SELECT APPROX_COUNT_DISTINCT(`my-column-1`) AS `my-column-1`,
 #              APPROX_COUNT_DISTINCT(`my-column-2`) AS `my-column-2`
 #       FROM `my-project.my-dataset.my-table`
+
+###
+# Configuration for the healthcheck endpoint, used to determine whether the
+# service is healthy or not
+#
+# healthcheck:
+#   enabled: true
+#   port: 8080
