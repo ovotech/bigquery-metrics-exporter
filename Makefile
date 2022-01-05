@@ -12,7 +12,7 @@ ${GOLINT}:
 	go get -u golang.org/x/lint/golint
 
 ${GORELEASER}:
-	curl -sfL https://install.goreleaser.com/github.com/goreleaser/goreleaser.sh | sh
+	GOBIN="$(CURDIR)/bin" go install github.com/goreleaser/goreleaser@latest
 
 bin/%: cmd/% $(shell find pkg -name '*.go')
 	go build -ldflags "-X ${MODULE}/pkg/config.Version=${VERSION}" -o $@ ${MODULE}/$<

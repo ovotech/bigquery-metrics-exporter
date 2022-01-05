@@ -104,7 +104,7 @@ func (d *Runner) RunUntil(ctx context.Context) error {
 	wg.Wait()
 
 	close(problem)
-	err := <- problem
+	err := <-problem
 	log.Err(err).Msg("Finishing Runner")
 	return err
 }
