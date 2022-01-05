@@ -150,7 +150,7 @@ locals {
     metric-prefix             = var.metric-prefix
     metric-tags               = var.metric-tags
     healthcheck = {
-      enabled = var.enable-autohealing ? true : false
+      enabled = var.enable-autohealing
       port    = 8080
     }
   }
