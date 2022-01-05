@@ -54,7 +54,7 @@ func Test_iterateDatasets(t *testing.T) {
 func Test_iterateDatasets_withFiltering(t *testing.T) {
 	cl := newMockClient("my-project", []mockDataset{})
 	out := iterateDatasets(context.TODO(), cl, "filter:yes")
-	<- out
+	<-out
 
 	want := "labels.filter:yes"
 	got := cl.iterator.(*mockDatasetIterator).filter
