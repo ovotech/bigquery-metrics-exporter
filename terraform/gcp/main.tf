@@ -120,7 +120,9 @@ resource "google_compute_health_check" "autohealing" {
 }
 
 data "google_compute_subnetwork" "subnetwork" {
-  self_link = var.subnetwork
+  name    = local.subnetwork-parts["name"]
+  region  = local.subnetwork-parts["region"]
+  project = local.subnetwork-parts["project"]
 }
 
 // Firewall rule to allow access to the bqmetrics healthcheck endpoint

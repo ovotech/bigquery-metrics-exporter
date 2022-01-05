@@ -128,7 +128,7 @@ variable "stackdriver-monitoring" {
 
 variable "subnetwork" {
   type        = string
-  description = "The subnetwork to connect the bqmetrics instance to"
+  description = "ID of the subnetwork to connect the bqmetrics instance to"
 }
 
 variable "zone" {
@@ -159,4 +159,5 @@ locals {
   region                 = coalesce(var.region, data.google_client_config.current.region)
   service-account-email  = local.create-service-account ? google_service_account.bqmetricsd.0.email : var.service-account-email
   zone                   = coalesce(var.zone, random_shuffle.zones.result[0])
+  subnetwork-parts       = regex("^projects/(?P<project>[a-z](?:[-a-z0-9]*[a-z0-9])?)/regions/(?P<region>[a-z](?:[-a-z0-9]*[a-z0-9])?)/subnetworks/(?P<name>[a-z](?:[-a-z0-9]*[a-z0-9])?)$", var.subnetwork)
 }
