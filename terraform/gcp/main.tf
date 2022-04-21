@@ -52,6 +52,7 @@ resource "google_compute_instance_template" "bqmetricsd" {
     (module.container.vm_container_label_key) = module.container.vm_container_label
   }
 
+  # checkov:skip=CKV_GCP_32:Configurable but defaults to true
   metadata = merge(
     { (module.container.metadata_key) = module.container.metadata_value },
     var.block-project-ssh-keys ? { block-project-ssh-keys = "true" } : {},
@@ -65,6 +66,12 @@ resource "google_compute_instance_template" "bqmetricsd" {
   service_account {
     email  = local.service-account-email
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+  }
+
+  shielded_instance_config {
+    enable_integrity_monitoring = true
+    enable_secure_boot          = true
+    enable_vtpm                 = true
   }
 
   tags = var.network-tags

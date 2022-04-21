@@ -10,6 +10,7 @@ version: 2.1
 
 orbs:
   terraform: ovotech/terraform@1
+  sast-terraform: ovotech/sast-terraform@1.0.0
 
 jobs:
   go-release:
@@ -87,3 +88,5 @@ workflows:
       - go-build
       - tf-check
       - tf-validate
+      - sast-terraform/checkov_static_code_analysis:
+          directory: terraform/gcp
