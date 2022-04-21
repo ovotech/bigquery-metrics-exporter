@@ -52,6 +52,7 @@ resource "google_compute_instance_template" "bqmetricsd" {
     (module.container.vm_container_label_key) = module.container.vm_container_label
   }
 
+  # checkov:skip=CKV_GCP_32:Configurable but defaults to true
   metadata = merge(
     { (module.container.metadata_key) = module.container.metadata_value },
     var.block-project-ssh-keys ? { block-project-ssh-keys = "true" } : {},
