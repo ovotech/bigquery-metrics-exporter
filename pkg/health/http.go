@@ -11,7 +11,7 @@ type Status string
 
 const (
 	// Ok status means that the service is operating nominally
-	Ok    = Status("OK")
+	Ok = Status("OK")
 
 	// Error status means that something is going wrong with the service
 	Error = Status("Error")
