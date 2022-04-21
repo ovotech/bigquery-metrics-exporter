@@ -1,6 +1,6 @@
 MODULE := $(shell go list -m)
 PACKAGES := $(shell go list ./...)
-GOLINT := $(shell go list -f {{.Target}} golang.org/x/lint/golint)
+GOLINT := bin/golint
 GORELEASER := bin/goreleaser
 VERSION := $(shell git describe --tags --exact-match 2>/dev/null || git log -1 --pretty='%h')
 
@@ -9,7 +9,7 @@ all: test
 	$(MAKE) bin/bqmetricsd
 
 ${GOLINT}:
-	go get -u golang.org/x/lint/golint
+	GOBIN="$(CURDIR)/bin" go install golang.org/x/lint/golint@latest
 
 ${GORELEASER}:
 	GOBIN="$(CURDIR)/bin" go install github.com/goreleaser/goreleaser@latest
