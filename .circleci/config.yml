@@ -10,7 +10,7 @@ version: 2.1
 
 orbs:
   terraform: ovotech/terraform@1
-  sast-terraform: ovotech/sast-terraform@dev:CPPE-71-adding-new-sast-terraform-orb
+  sast-terraform: ovotech/sast-terraform@1.0.0
 
 jobs:
   go-release:

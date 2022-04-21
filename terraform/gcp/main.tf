@@ -68,7 +68,11 @@ resource "google_compute_instance_template" "bqmetricsd" {
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
-  shielded_instance_config {}
+  shielded_instance_config {
+    enable_integrity_monitoring = true
+    enable_secure_boot          = true
+    enable_vtpm                 = true
+  }
 
   tags = var.network-tags
 
