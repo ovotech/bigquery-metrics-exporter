@@ -68,6 +68,8 @@ resource "google_compute_instance_template" "bqmetricsd" {
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
+  shielded_instance_config {}
+
   tags = var.network-tags
 
   lifecycle {
