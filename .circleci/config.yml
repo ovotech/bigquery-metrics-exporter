@@ -120,5 +120,5 @@ workflows:
           <<: *on-main
           schedule_name: nightly_build_workflow
           schedule_description: Workflow for nightly builds
-          schedule_hours: 23
+          schedule_hours: '23'
           schedule_days: MON,TUE,WED,THU,FRI,SAT,SUN
