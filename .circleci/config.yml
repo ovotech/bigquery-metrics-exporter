@@ -7,10 +7,24 @@ version: 2.1
         ignore: /.*/
       tags:
         only: /v[0-9]+(\.[0-9]+)*(-.*)*/
+  - &on-main
+    filters:
+      branches:
+        only: main
+  - &on-schedule
+    when:
+      and:
+        - equal: [scheduled_pipeline, << pipeline.trigger_source >>]
+        - equal: [nightly_build_workflow, << pipeline.schedule.name >>]
+  - &not-on-schedule
+    when:
+      not:
+        equal: [scheduled_pipeline, << pipeline.trigger_source >>]
 
 orbs:
   terraform: ovotech/terraform@1
   sast-terraform: ovotech/sast-terraform@1.0.0
+  scheduled-pipeline: ovotech/setup-scheduled-pipeline@1.0.1
 
 jobs:
   go-release:
@@ -52,7 +66,7 @@ jobs:
     executor: terraform/terraform-0_12
     steps:
       - checkout
-      - run: echo 'version = "0.12.31"' >> terraform/gcp/.tfswitch.toml
+      - run: echo '0.12.31' >> terraform/gcp/.tfswitchrc
       - terraform/fmt-check:
           path: terraform/gcp
 
@@ -60,7 +74,7 @@ jobs:
     executor: terraform/terraform-0_12
     steps:
       - checkout
-      - run: echo 'version = "0.12.31"' >> terraform/gcp/.tfswitch.toml
+      - run: echo '0.12.31' >> terraform/gcp/.tfswitchrc
       - terraform/validate:
           path: terraform/gcp
 
@@ -75,6 +89,7 @@ jobs:
 
 workflows:
   release:
+    <<: *not-on-schedule
     jobs:
       - go-release:
           <<: *on-release
@@ -82,6 +97,7 @@ workflows:
           <<: *on-release
 
   quality-checks:
+    <<: *not-on-schedule
     jobs:
       - go-test
       - go-lint
@@ -90,3 +106,19 @@ workflows:
       - tf-validate
       - sast-terraform/checkov_static_code_analysis:
           directory: terraform/gcp
+
+  nightly-build:
+    <<: *on-schedule
+    jobs:
+      - go-test
+      - go-lint
+      - go-build
+
+  define-triggers:
+    jobs:
+      - scheduled-pipeline/create_scheduled_pipeline:
+          <<: *on-main
+          schedule_name: nightly_build_workflow
+          schedule_description: Workflow for nightly builds
+          schedule_hours: '23'
+          schedule_days: MON,TUE,WED,THU,FRI,SAT,SUN
