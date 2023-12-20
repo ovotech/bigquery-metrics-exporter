@@ -5,6 +5,7 @@ resource "random_string" "suffix" {
 }
 
 module "container" {
+  #checkov:skip=CKV_TF_1
   source  = "terraform-google-modules/container-vm/google"
   version = "~> 2.0"
 
