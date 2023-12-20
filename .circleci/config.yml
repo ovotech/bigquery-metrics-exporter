@@ -38,7 +38,7 @@ jobs:
           name: goreleaser
           command: |
             echo $DOCKER_PASS | docker login -u=$DOCKER_USER --password-stdin
-            curl -sL https://git.io/goreleaser | VERSION=v0.157.0 bash
+            curl -sfL https://goreleaser.com/static/run | bash
 
   go-test:
     docker:
