@@ -18,10 +18,10 @@ bin/%: cmd/% $(shell find pkg -name '*.go')
 	go build -ldflags "-X ${MODULE}/pkg/config.Version=${VERSION}" -o $@ ${MODULE}/$<
 
 build: ${GORELEASER}
-	${GORELEASER} release --rm-dist --snapshot
+	${GORELEASER} release --clean --snapshot
 
 clean:
-	rm -rf bin
+	rm -rf bin dist
 
 fmt:
 	go fmt ${PACKAGES}
