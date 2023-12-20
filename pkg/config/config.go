@@ -38,6 +38,7 @@ var Version = "0.0.0"
 // Config holds the configuration for the application
 type Config struct {
 	DatadogAPIKey  string         `viper:"datadog-api-key"`
+	DatadogSite    string         `viper:"datadog-site"`
 	DatasetFilter  string         `viper:"dataset-filter"`
 	GcpProject     string         `viper:"gcp-project-id"`
 	MetricPrefix   string         `viper:"metric-prefix"`
@@ -137,10 +138,26 @@ func NormaliseConfig(c *Config) {
 	}
 }
 
+// DatadogSites is a mapping of valid Datadog site names and their respective URLs
+var DatadogSites = map[string]string{
+	"US":      "datadoghq.com",
+	"US1":     "datadoghq.com",
+	"US3":     "us3.datadoghq.com",
+	"US5":     "us5.datadoghq.com",
+	"EU":      "datadoghq.eu",
+	"EU1":     "datadoghq.eu",
+	"US1-FED": "ddog-gov.com",
+	"AP1":     "ap1.datadoghq.com",
+}
+
 // ValidateConfig will validate that all of the required config parameters are present
 func ValidateConfig(c *Config) error {
 	if c.DatadogAPIKey == "" {
 		return ErrMissingDatadogAPIKey
+	}
+
+	if _, ok := DatadogSites[c.DatadogSite]; !ok {
+		return ErrInvalidDatadogSite
 	}
 
 	if c.GcpProject == "" {
@@ -197,6 +214,7 @@ func configFlags(name string) *pflag.FlagSet {
 	flags.String("dataset-filter", "", "BigQuery label to filter datasets for metric collection")
 	flags.String("datadog-api-key-file", "", "File containing the Datadog API key")
 	flags.String("datadog-api-key-secret-id", "", "Google Secret Manager Resource ID containing the Datadog API key")
+	flags.String("datadog-site", "US", "Datadog site to use (see https://docs.datadoghq.com/getting_started/site/)")
 	flags.String("gcp-project-id", "", "The GCP project to extract BigQuery metrics from")
 	flags.String("metric-prefix", DefaultMetricPrefix, fmt.Sprintf("The prefix for the metrics names exported to Datadog (Default %s)", DefaultMetricPrefix))
 	flags.Duration("metric-interval", defInterval, fmt.Sprintf("The interval between metrics submissions (Default %s)", DefaultMetricInterval))

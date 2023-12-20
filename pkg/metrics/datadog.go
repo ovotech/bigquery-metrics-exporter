@@ -44,7 +44,8 @@ func (dp *DatadogPublisher) PublishMetricsSet(ctx context.Context, metrics []Met
 		return NewUnrecoverableError(err)
 	}
 
-	url := fmt.Sprintf("https://api.datadoghq.com/api/v1/series?api_key=%s", dp.cfg.DatadogAPIKey)
+	ddSite := config.DatadogSites[dp.cfg.DatadogSite]
+	url := fmt.Sprintf("https://api.%s/api/v1/series?api_key=%s", ddSite, dp.cfg.DatadogAPIKey)
 	request, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(body))
 	if err != nil {
 		return NewUnrecoverableError(err)

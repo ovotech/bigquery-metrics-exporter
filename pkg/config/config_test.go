@@ -41,8 +41,9 @@ func TestNewConfig(t *testing.T) {
 		want    *Config
 		wantErr bool
 	}{
-		{"all via env", setup([]string{"DATADOG_API_KEY=abc123", "DATASET_FILTER=bqmetrics:enabled", "GCP_PROJECT_ID=my-project-id", "METRIC_PREFIX=custom.gcp.bigquery.stats", "METRIC_TAGS=env:prod", "METRIC_INTERVAL=2m", "HEALTHCHECK_ENABLED=true"}, nil, ""), args{"bqmetricstest"}, &Config{
+		{"all via env", setup([]string{"DATADOG_API_KEY=abc123", "DATADOG_SITE=EU", "DATASET_FILTER=bqmetrics:enabled", "GCP_PROJECT_ID=my-project-id", "METRIC_PREFIX=custom.gcp.bigquery.stats", "METRIC_TAGS=env:prod", "METRIC_INTERVAL=2m", "HEALTHCHECK_ENABLED=true"}, nil, ""), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "EU",
 			DatasetFilter:  "bqmetrics:enabled",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
@@ -51,8 +52,9 @@ func TestNewConfig(t *testing.T) {
 			Profiler:       Profiler{false, 6060},
 			HealthCheck:    HealthCheck{true, 8080},
 		}, false},
-		{"all via cmd", setup(nil, []string{"--datadog-api-key-file=/tmp/dd.key", "--dataset-filter=bqmetrics:enabled", "--gcp-project-id=my-project-id", "--metric-prefix=custom.gcp.bigquery.stats", "--metric-tags=env:prod", "--metric-interval=2m", "--profiler.enabled"}, "abc123"), args{"bqmetricstest"}, &Config{
+		{"all via cmd", setup(nil, []string{"--datadog-api-key-file=/tmp/dd.key", "--datadog-site=EU", "--dataset-filter=bqmetrics:enabled", "--gcp-project-id=my-project-id", "--metric-prefix=custom.gcp.bigquery.stats", "--metric-tags=env:prod", "--metric-interval=2m", "--profiler.enabled"}, "abc123"), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "EU",
 			DatasetFilter:  "bqmetrics:enabled",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
@@ -61,8 +63,9 @@ func TestNewConfig(t *testing.T) {
 			Profiler:       Profiler{true, 6060},
 			HealthCheck:    HealthCheck{false, 8080},
 		}, false},
-		{"mixture of sources", setup([]string{"DATADOG_API_KEY=abc123", "GCP_PROJECT_ID=my-project-id"}, []string{"--metric-prefix=custom.gcp.bigquery.stats", "--metric-tags=env:prod", "--metric-interval=2m"}, ""), args{"bqmetricstest"}, &Config{
+		{"mixture of sources", setup([]string{"DATADOG_API_KEY=abc123", "DATADOG_SITE=US", "GCP_PROJECT_ID=my-project-id"}, []string{"--metric-prefix=custom.gcp.bigquery.stats", "--metric-tags=env:prod", "--metric-interval=2m"}, ""), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "US",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
@@ -72,6 +75,7 @@ func TestNewConfig(t *testing.T) {
 		}, false},
 		{"minimum required config", setup([]string{"DATADOG_API_KEY=abc123", "GCP_PROJECT_ID=my-project-id"}, nil, ""), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "US",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   DefaultMetricPrefix,
 			MetricTags:     []string{},
@@ -81,6 +85,7 @@ func TestNewConfig(t *testing.T) {
 		}, false},
 		{"default credentials", setup([]string{"DATADOG_API_KEY=abc123", "GOOGLE_APPLICATION_CREDENTIALS=/tmp/dd.key"}, nil, "{\"type\": \"service_account\", \"project_id\": \"my-project-id\"}"), args{"bqmetricstest"}, &Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "US",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   DefaultMetricPrefix,
 			MetricTags:     []string{},
@@ -118,7 +123,7 @@ func TestNewConfig_configFile(t *testing.T) {
 		_ = os.Remove(n)
 	}()
 
-	data := []byte("{\"datadog-api-key\": \"abc123\", \"dataset-filter\": \"bqmetrics:enabled\", \"gcp-project-id\": \"my-project-id\", \"metric-prefix\": \"custom.gcp.bigquery.stats\", \"metric-tags\": \"env:prod,team:my-team\", \"metric-interval\": \"2m\", \"healthcheck\": {\"enabled\": true, \"port\": 8081}}")
+	data := []byte("{\"datadog-api-key\": \"abc123\", \"datadog-site\": \"US\", \"dataset-filter\": \"bqmetrics:enabled\", \"gcp-project-id\": \"my-project-id\", \"metric-prefix\": \"custom.gcp.bigquery.stats\", \"metric-tags\": \"env:prod,team:my-team\", \"metric-interval\": \"2m\", \"healthcheck\": {\"enabled\": true, \"port\": 8081}}")
 	if _, err = f.Write(data); err != nil {
 		t.Fatalf("error when writing test config file: %s", err)
 	}
@@ -126,6 +131,7 @@ func TestNewConfig_configFile(t *testing.T) {
 	os.Args = []string{"./bqmetricstest", "--config-file", f.Name()}
 	want := &Config{
 		DatadogAPIKey:  "abc123",
+		DatadogSite:    "US",
 		DatasetFilter:  "bqmetrics:enabled",
 		GcpProject:     "my-project-id",
 		MetricPrefix:   "custom.gcp.bigquery.stats",
@@ -180,7 +186,7 @@ func TestNewConfig_configFileWithCustomQueries(t *testing.T) {
 		_ = os.Remove(n)
 	}()
 
-	data := []byte("{\"datadog-api-key\": \"abc123\", \"gcp-project-id\": \"my-project-id\", \"metric-prefix\": \"custom.gcp.bigquery.stats\", \"metric-tags\": \"env:prod,team:my-team\", \"metric-interval\": \"2m\", \"custom-metrics\": [{\"metric-name\": \"my_metric\", \"metric-tags\": [\"table_id:table\"], \"sql\": \"SELECT COUNT(DISTINCT *) FROM `table`\"}]}")
+	data := []byte("{\"datadog-api-key\": \"abc123\", \"datadog-site\": \"US\", \"gcp-project-id\": \"my-project-id\", \"metric-prefix\": \"custom.gcp.bigquery.stats\", \"metric-tags\": \"env:prod,team:my-team\", \"metric-interval\": \"2m\", \"custom-metrics\": [{\"metric-name\": \"my_metric\", \"metric-tags\": [\"table_id:table\"], \"sql\": \"SELECT COUNT(DISTINCT *) FROM `table`\"}]}")
 	if _, err = f.Write(data); err != nil {
 		t.Fatalf("error when writing test config file: %s", err)
 	}
@@ -188,6 +194,7 @@ func TestNewConfig_configFileWithCustomQueries(t *testing.T) {
 	os.Args = []string{"./bqmetricstest", "--config-file", f.Name()}
 	want := &Config{
 		DatadogAPIKey:  "abc123",
+		DatadogSite:    "US",
 		GcpProject:     "my-project-id",
 		MetricPrefix:   "custom.gcp.bigquery.stats",
 		MetricTags:     []string{"env:prod", "team:my-team"},
@@ -223,6 +230,7 @@ func TestValidateConfig(t *testing.T) {
 	}{
 		{"valid", args{&Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "US",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
@@ -230,6 +238,14 @@ func TestValidateConfig(t *testing.T) {
 		}}, false},
 		{"missing datadog api key", args{&Config{
 			DatadogAPIKey:  "",
+			DatadogSite:    "US",
+			GcpProject:     "my-project-id",
+			MetricPrefix:   "custom.gcp.bigquery.stats",
+			MetricTags:     []string{"env:prod"},
+			MetricInterval: time.Duration(30000),
+		}}, true},
+		{"missing datadog site", args{&Config{
+			DatadogAPIKey:  "abc123",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
@@ -237,6 +253,7 @@ func TestValidateConfig(t *testing.T) {
 		}}, true},
 		{"missing gcp project id", args{&Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "US",
 			GcpProject:     "",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
@@ -244,6 +261,7 @@ func TestValidateConfig(t *testing.T) {
 		}}, true},
 		{"missing metric prefix", args{&Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "US",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "",
 			MetricTags:     []string{"env:prod"},
@@ -251,6 +269,7 @@ func TestValidateConfig(t *testing.T) {
 		}}, true},
 		{"missing metric tags", args{&Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "US",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     nil,
@@ -258,6 +277,7 @@ func TestValidateConfig(t *testing.T) {
 		}}, false},
 		{"missing metric interval", args{&Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "US",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
@@ -265,6 +285,7 @@ func TestValidateConfig(t *testing.T) {
 		}}, true},
 		{"missing profiling", args{&Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "US",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
@@ -273,6 +294,7 @@ func TestValidateConfig(t *testing.T) {
 		}}, false},
 		{"custom metrics okay", args{&Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "US",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
@@ -287,6 +309,7 @@ func TestValidateConfig(t *testing.T) {
 		}}, false},
 		{"custom metrics missing name", args{&Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "US",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
@@ -298,6 +321,7 @@ func TestValidateConfig(t *testing.T) {
 		}}, true},
 		{"custom metrics missing sql", args{&Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "US",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
@@ -309,6 +333,7 @@ func TestValidateConfig(t *testing.T) {
 		}}, true},
 		{"health check disabled", args{&Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "US",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
@@ -317,6 +342,7 @@ func TestValidateConfig(t *testing.T) {
 		}}, false},
 		{"health check port invalid", args{&Config{
 			DatadogAPIKey:  "abc123",
+			DatadogSite:    "US",
 			GcpProject:     "my-project-id",
 			MetricPrefix:   "custom.gcp.bigquery.stats",
 			MetricTags:     []string{"env:prod"},
