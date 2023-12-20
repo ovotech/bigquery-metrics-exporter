@@ -1,6 +1,6 @@
 module github.com/ovotech/bigquery-metrics-extractor
 
-go 1.18
+go 1.21
 
 require (
 	cloud.google.com/go v0.101.0
