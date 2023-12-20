@@ -138,6 +138,7 @@ func NormaliseConfig(c *Config) {
 	}
 }
 
+// DatadogSites is a mapping of valid Datadog site names and their respective URLs
 var DatadogSites = map[string]string{
 	"US":      "datadoghq.com",
 	"US1":     "datadoghq.com",
