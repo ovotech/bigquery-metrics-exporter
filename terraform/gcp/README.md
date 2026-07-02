@@ -9,7 +9,7 @@ data "google_compute_subnetwork" "default" {
 }
 
 module "bqmetrics" {
-  source = "git::https://github.com/ovotech/bigquery-metrics-exporter.git//terraform/gcp?ref=v1.2.2"
+  source = "git::https://github.com/ovotech/bigquery-metrics-exporter.git//terraform/gcp?ref=v1.5.0"
 
   datadog-api-key-secret = "datadog-api-key"
   subnetwork             = data.google_compute_subnetwork.default.self_link
@@ -28,6 +28,14 @@ Optional
 
 Whether to block project-wide SSH keys from being able to connect to the 
 `bqmetricsd` instance, as an enhanced security measure. Defaults to `true`.
+
+#### cos-image-family (string)
+Optional
+
+The Container-Optimized OS image family used for the VM boot disk. Defaults to
+`cos-stable`, which tracks Google's rolling stable channel. Pin to a specific
+milestone (e.g. `cos-121-lts`) if you want image-version stability at the cost
+of falling behind on OS patches.
 
 #### custom-metrics (list(object))
 Optional
@@ -152,3 +160,19 @@ The subnetwork to connect the bqmetrics instance to
 Optional
 
 The zone to run the bqmetrics instance in. Defaults to a random zone
+
+## Upgrading to v1.5.0
+
+v1.5.0 migrates the module off Google's deprecated container startup agent
+(konlet). Consumers do not need to edit their `.tf` files. On the first
+`terraform apply` after bumping the module ref you should expect:
+
+- **One rolling MIG replacement** of the single `bqmetricsd` VM. This is the
+  same behaviour you already get whenever `image-tag` changes.
+- **A Container-Optimized OS version jump** in the plan diff. The previous
+  `terraform-google-modules/container-vm ~> 2.0` pin had likely fallen behind
+  on COS milestones; v1.5.0 uses the current `cos-stable` family. This is a
+  one-off catch-up.
+- **The `terraform-google-modules/container-vm` module disappearing from your
+  state graph.** That module only produced data sources and locals — no real
+  cloud resources are destroyed.
