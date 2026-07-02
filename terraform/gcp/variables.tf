@@ -10,6 +10,12 @@ variable "block-project-ssh-keys" {
   default     = true
 }
 
+variable "cos-image-family" {
+  type        = string
+  description = "The Container-Optimized OS image family to use for the VM boot disk"
+  default     = "cos-stable"
+}
+
 variable "custom-metrics" {
   type        = any
   description = <<-EOT

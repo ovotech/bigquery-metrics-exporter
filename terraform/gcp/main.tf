@@ -4,33 +4,9 @@ resource "random_string" "suffix" {
   upper   = false
 }
 
-module "container" {
-  #checkov:skip=CKV_TF_1
-  source  = "terraform-google-modules/container-vm/google"
-  version = "~> 2.0"
-
-  container = {
-    image = "${var.image-repository}:${var.image-tag}"
-    args  = ["--config-file=${local.config_path}"]
-    env = [{
-      name  = "LOG_LEVEL"
-      value = var.log-level
-    }]
-    volumeMounts = [{
-      mountPath = local.config_path
-      name      = "config"
-      readOnly  = true
-    }]
-  }
-
-  volumes = [{
-    name = "config"
-    hostPath = {
-      path = local.config_path
-    }
-  }]
-
-  restart_policy = "Always"
+data "google_compute_image" "cos" {
+  family  = var.cos-image-family
+  project = "cos-cloud"
 }
 
 resource "google_compute_instance_template" "bqmetricsd" {
@@ -42,20 +18,15 @@ resource "google_compute_instance_template" "bqmetricsd" {
   disk {
     auto_delete  = true
     boot         = true
-    source_image = module.container.source_image
+    source_image = data.google_compute_image.cos.self_link
   }
 
   network_interface {
     subnetwork = var.subnetwork
   }
 
-  labels = {
-    (module.container.vm_container_label_key) = module.container.vm_container_label
-  }
-
   # checkov:skip=CKV_GCP_32:Configurable but defaults to true
   metadata = merge(
-    { (module.container.metadata_key) = module.container.metadata_value },
     var.block-project-ssh-keys ? { block-project-ssh-keys = "true" } : {},
     var.enable-os-login ? { enable-oslogin = "true" } : {},
     var.stackdriver-monitoring ? { google-monitoring-enabled = "true" } : {},
@@ -172,5 +143,7 @@ data "template_file" "startup" {
   vars = {
     config_content = base64encode(jsonencode(local.config))
     config_path    = local.config_path
+    image          = "${var.image-repository}:${var.image-tag}"
+    log_level      = var.log-level
   }
 }
